@@ -1,0 +1,22 @@
+# Raw and processed data (may contain PHI / large files)
+data/raw/
+data/processed/
+data/*.rds
+data/*.RDS
+data/*.csv
+data/*.tsv
+data/*.txt
+
+# Output figures and tables (reproducible from code)
+output/figures/
+output/tables/
+
+# R session / environment
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# OS cruft
+.DS_Store
+Thumbs.db
