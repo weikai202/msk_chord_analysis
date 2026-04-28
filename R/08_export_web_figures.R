@@ -59,10 +59,14 @@ message("Reading PDFs from: ", PDF_DIR)
 WEB_FIG <- here::here("docs", "figures")
 if (!dir.exists(WEB_FIG)) dir.create(WEB_FIG, recursive = TRUE)
 
-# ── Install magick if needed ──────────────────────────────────────────────────
-if (!"magick" %in% installed.packages()[, "Package"])
-  install.packages("magick", repos = "https://cloud.r-project.org")
+# ── Install magick + pdftools if needed ──────────────────────────────────────
+# magick::image_read_pdf() requires pdftools as a backend for PDF rendering.
+for (pkg in c("magick", "pdftools")) {
+  if (!pkg %in% installed.packages()[, "Package"])
+    install.packages(pkg, repos = "https://cloud.r-project.org")
+}
 library(magick)
+library(pdftools)   # must be attached so magick can find the PDF driver
 
 # ── Helper: convert one PDF page to PNG ──────────────────────────────────────
 pdf_to_png <- function(pdf_name, out_name, density = 180) {
