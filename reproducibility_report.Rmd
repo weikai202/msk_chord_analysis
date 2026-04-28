@@ -1,6 +1,6 @@
 ---
 title: "Reproducibility Report: Racial/Ethnic Disparities in Driver Gene Mutations"
-subtitle: "MSK-CHORD 2024 Analysis | BIOSTAT 625 / PUBHLTH 614"
+subtitle: "MSK-CHORD 2024 Analysis | BIOSTAT 629"
 author: "Kai Wei"
 date: "`r Sys.Date()`"
 output:
@@ -679,7 +679,7 @@ sessionInfo()
 # References
 
 1. Dempsey, W. & Morrison, J. (2023). *Reproducible Research: Tools and
-   Practices*. BIOSTAT 625, University of Michigan.
+   Practices*. BIOSTAT 629, University of Michigan.
    (`jean997.github.io/rr_tools`)
 
 2. Wilson, E. B. (1927). Probable inference, the law of succession, and
