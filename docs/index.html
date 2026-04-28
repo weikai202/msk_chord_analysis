@@ -5,346 +5,178 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Racial Disparities in Driver Gene Mutations | MSK-CHORD 2024</title>
   <meta name="description"
-        content="Analysis of racial/ethnic disparities in driver gene mutation frequencies and overall survival in NSCLC using MSK-CHORD 2024 data." />
-
-  <!-- Google Fonts -->
+        content="Analysis of racial/ethnic disparities in driver gene mutation frequencies
+                 and overall survival in NSCLC using MSK-CHORD 2024 data." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
   <style>
-    /* ── Reset & tokens ───────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --navy:    #1a2744;
-      --blue:    #2c5282;
-      --accent:  #4477AA;
-      --red:     #CC3311;
-      --green:   #228833;
-      --gold:    #CCBB44;
-      --light:   #f7f9fc;
-      --border:  #e2e8f0;
-      --text:    #2d3748;
-      --muted:   #718096;
-      --white:   #ffffff;
-      --serif:   'Lora', Georgia, serif;
-      --sans:    'Inter', system-ui, sans-serif;
-      --mono:    'JetBrains Mono', monospace;
-      --radius:  8px;
-      --shadow:  0 2px 12px rgba(0,0,0,.08);
-      --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
+      --navy:   #1a2744;
+      --blue:   #2c5282;
+      --accent: #4477AA;
+      --red:    #CC3311;
+      --green:  #228833;
+      --gold:   #CCBB44;
+      --light:  #f7f9fc;
+      --border: #e2e8f0;
+      --text:   #2d3748;
+      --muted:  #718096;
+      --white:  #ffffff;
+      --serif:  'Lora', Georgia, serif;
+      --sans:   'Inter', system-ui, sans-serif;
+      --mono:   'JetBrains Mono', monospace;
+      --r:      8px;
+      --sh:     0 2px 12px rgba(0,0,0,.08);
+      --sh-lg:  0 8px 32px rgba(0,0,0,.13);
     }
 
     html { scroll-behavior: smooth; }
-    body {
-      font-family: var(--sans);
-      color: var(--text);
-      background: var(--light);
-      line-height: 1.7;
-    }
+    body { font-family: var(--sans); color: var(--text); background: var(--light); line-height: 1.7; }
 
-    /* ── Sticky nav ───────────────────────────────────────────── */
+    /* nav */
     nav {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: var(--navy);
-      padding: .75rem 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      background: var(--navy); padding: .7rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
       box-shadow: 0 2px 8px rgba(0,0,0,.3);
     }
-    .nav-brand {
-      color: #fff;
-      font-family: var(--serif);
-      font-size: 1rem;
-      font-weight: 600;
-      text-decoration: none;
-      letter-spacing: .02em;
-    }
-    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
-    .nav-links a {
-      color: rgba(255,255,255,.8);
-      text-decoration: none;
-      font-size: .85rem;
-      font-weight: 500;
-      transition: color .2s;
-    }
+    .nav-brand { color: #fff; font-family: var(--serif); font-size: .95rem; font-weight: 600; text-decoration: none; }
+    .nav-links { display: flex; gap: 1.4rem; list-style: none; }
+    .nav-links a { color: rgba(255,255,255,.75); text-decoration: none; font-size: .83rem; font-weight: 500; transition: color .2s; }
     .nav-links a:hover { color: #fff; }
 
-    /* ── Hero ─────────────────────────────────────────────────── */
+    /* hero */
     .hero {
-      background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 60%, #2a6495 100%);
-      color: #fff;
-      padding: 5rem 2rem 4rem;
-      text-align: center;
+      background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 55%, #2a6495 100%);
+      color: #fff; padding: 5rem 2rem 4rem; text-align: center;
     }
     .hero-tag {
-      display: inline-block;
-      background: rgba(255,255,255,.15);
-      border: 1px solid rgba(255,255,255,.3);
-      border-radius: 20px;
-      padding: .25rem .9rem;
-      font-size: .78rem;
-      font-weight: 500;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      margin-bottom: 1.2rem;
+      display: inline-block; background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.3); border-radius: 20px;
+      padding: .25rem .9rem; font-size: .77rem; font-weight: 500;
+      letter-spacing: .08em; text-transform: uppercase; margin-bottom: 1.2rem;
     }
     .hero h1 {
-      font-family: var(--serif);
-      font-size: clamp(1.8rem, 4vw, 3rem);
-      font-weight: 600;
-      line-height: 1.25;
-      max-width: 780px;
-      margin: 0 auto .8rem;
+      font-family: var(--serif); font-size: clamp(1.8rem, 4vw, 2.9rem);
+      font-weight: 600; line-height: 1.25; max-width: 800px; margin: 0 auto .8rem;
     }
-    .hero-sub {
-      font-size: 1rem;
-      color: rgba(255,255,255,.75);
-      max-width: 620px;
-      margin: 0 auto 2.5rem;
-    }
-    .hero-stats {
-      display: flex;
-      justify-content: center;
-      gap: 2.5rem;
-      flex-wrap: wrap;
-      margin-top: 2rem;
-    }
+    .hero-sub { font-size: .97rem; color: rgba(255,255,255,.75); max-width: 620px; margin: 0 auto 2.5rem; }
+    .hero-stats { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin-top: 2rem; }
     .stat-card {
-      background: rgba(255,255,255,.12);
-      border: 1px solid rgba(255,255,255,.2);
-      border-radius: var(--radius);
-      padding: 1rem 1.5rem;
-      min-width: 120px;
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+      border-radius: var(--r); padding: .9rem 1.4rem; min-width: 110px;
     }
-    .stat-num {
-      font-size: 1.9rem;
-      font-weight: 700;
-      display: block;
-      font-family: var(--serif);
-    }
-    .stat-lbl {
-      font-size: .75rem;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      color: rgba(255,255,255,.7);
-    }
-    .hero-buttons { margin-top: 2.2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .stat-num { font-size: 1.85rem; font-weight: 700; display: block; font-family: var(--serif); }
+    .stat-lbl { font-size: .73rem; text-transform: uppercase; letter-spacing: .06em; color: rgba(255,255,255,.68); }
+    .hero-btns { margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
     .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: .4rem;
-      padding: .6rem 1.4rem;
-      border-radius: 6px;
-      font-size: .88rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: transform .15s, box-shadow .15s;
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .58rem 1.35rem; border-radius: 6px; font-size: .87rem;
+      font-weight: 600; text-decoration: none; transition: transform .15s, box-shadow .15s;
     }
     .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.25); }
-    .btn-white  { background: #fff; color: var(--navy); }
-    .btn-ghost  { background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.5); }
+    .btn-white { background: #fff; color: var(--navy); }
+    .btn-ghost  { background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.45); }
 
-    /* ── Section wrapper ──────────────────────────────────────── */
-    .section { padding: 4rem 2rem; }
-    .section-inner { max-width: 1100px; margin: 0 auto; }
-    .section-alt { background: #fff; }
+    /* sections */
+    .sec { padding: 3.8rem 2rem; }
+    .sec-alt { background: var(--white); }
+    .inner { max-width: 1080px; margin: 0 auto; }
+    .sec-h { font-family: var(--serif); font-size: 1.65rem; font-weight: 600; color: var(--navy); margin-bottom: .35rem; }
+    .sec-sub { color: var(--muted); font-size: .93rem; margin-bottom: 2.2rem; max-width: 620px; }
+    .divider { width: 44px; height: 3px; background: var(--accent); margin: .45rem 0 1.3rem; border-radius: 2px; }
 
-    .section-heading {
-      font-family: var(--serif);
-      font-size: 1.7rem;
-      font-weight: 600;
-      color: var(--navy);
-      margin-bottom: .4rem;
-    }
-    .section-sub {
-      color: var(--muted);
-      font-size: .95rem;
-      margin-bottom: 2.5rem;
-      max-width: 640px;
-    }
-    .divider {
-      width: 48px;
-      height: 3px;
-      background: var(--accent);
-      margin: .5rem 0 1.5rem;
-      border-radius: 2px;
-    }
-
-    /* ── Overview cards ───────────────────────────────────────── */
-    .card-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-      gap: 1.5rem;
-    }
+    /* overview cards */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.3rem; }
     .card {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.5rem;
-      box-shadow: var(--shadow);
-      transition: box-shadow .2s, transform .2s;
+      background: var(--white); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 1.4rem; box-shadow: var(--sh); transition: box-shadow .2s, transform .2s;
     }
-    .card:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); }
-    .card-icon {
-      font-size: 1.8rem;
-      margin-bottom: .6rem;
-      display: block;
-    }
-    .card h3 {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--navy);
-      margin-bottom: .4rem;
-    }
-    .card p { font-size: .88rem; color: var(--muted); }
+    .card:hover { box-shadow: var(--sh-lg); transform: translateY(-3px); }
+    .card-icon { font-size: 1.7rem; margin-bottom: .55rem; display: block; }
+    .card h3 { font-size: .97rem; font-weight: 600; color: var(--navy); margin-bottom: .35rem; }
+    .card p { font-size: .85rem; color: var(--muted); }
 
-    /* ── Figure panels ────────────────────────────────────────── */
-    .fig-section { margin-bottom: 3.5rem; }
-    .fig-header {
-      display: flex;
-      align-items: baseline;
-      gap: .8rem;
-      margin-bottom: .8rem;
-    }
-    .fig-num {
-      background: var(--navy);
-      color: #fff;
-      font-size: .75rem;
-      font-weight: 700;
-      padding: .2rem .6rem;
-      border-radius: 4px;
-      letter-spacing: .04em;
-      flex-shrink: 0;
-    }
-    .fig-title {
-      font-family: var(--serif);
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: var(--navy);
-    }
-    .fig-caption {
-      font-size: .87rem;
-      color: var(--muted);
-      margin-bottom: 1rem;
-      max-width: 780px;
-      line-height: 1.6;
-    }
-    .fig-caption strong { color: var(--text); }
-    .fig-img-wrap {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1rem;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-    .fig-img-wrap img {
-      width: 100%;
-      height: auto;
-      display: block;
-      border-radius: 4px;
-    }
-    .fig-img-wrap:hover { box-shadow: var(--shadow-lg); }
-
-    /* ── Key findings pills ──────────────────────────────────── */
-    .finding-list { display: flex; flex-direction: column; gap: .9rem; }
+    /* findings */
+    .finding-list { display: flex; flex-direction: column; gap: .85rem; }
     .finding {
-      background: #fff;
-      border-left: 4px solid var(--accent);
-      border-radius: 0 var(--radius) var(--radius) 0;
-      padding: .9rem 1.2rem;
-      box-shadow: var(--shadow);
-      font-size: .92rem;
+      background: #fff; border-left: 4px solid var(--accent);
+      border-radius: 0 var(--r) var(--r) 0; padding: .85rem 1.15rem;
+      box-shadow: var(--sh); font-size: .91rem;
     }
-    .finding.red  { border-color: var(--red); }
+    .finding.red   { border-color: var(--red); }
     .finding.green { border-color: var(--green); }
     .finding.gold  { border-color: var(--gold); }
-    .finding strong { color: var(--navy); display: block; margin-bottom: .15rem; font-size: .95rem; }
+    .finding strong { color: var(--navy); display: block; margin-bottom: .12rem; font-size: .94rem; }
 
-    /* ── Methods table ────────────────────────────────────────── */
-    .method-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-      gap: 1.2rem;
-    }
-    .method-card {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.3rem 1.5rem;
-      box-shadow: var(--shadow);
-    }
-    .method-card h4 {
-      font-size: .92rem;
-      font-weight: 600;
-      color: var(--navy);
-      margin-bottom: .5rem;
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-    }
-    .method-card p { font-size: .84rem; color: var(--muted); line-height: 1.6; }
-    .badge {
-      display: inline-block;
-      background: var(--light);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: .1rem .45rem;
-      font-family: var(--mono);
-      font-size: .72rem;
-      color: var(--navy);
+    /* figure group headings */
+    .fig-group { margin-bottom: 3rem; }
+    .fig-group-title {
+      font-family: var(--serif); font-size: 1.15rem; font-weight: 600;
+      color: var(--navy); border-bottom: 2px solid var(--border);
+      padding-bottom: .4rem; margin-bottom: 1.5rem;
     }
 
-    /* ── Results table ────────────────────────────────────────── */
-    .tbl-wrap {
-      overflow-x: auto;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
+    /* figure panels */
+    .fig-panel { margin-bottom: 2.6rem; }
+    .fig-header { display: flex; align-items: baseline; gap: .7rem; margin-bottom: .7rem; }
+    .fig-num {
+      background: var(--navy); color: #fff; font-size: .72rem; font-weight: 700;
+      padding: .18rem .55rem; border-radius: 4px; letter-spacing: .04em; flex-shrink: 0;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: .86rem;
+    .fig-title { font-family: var(--serif); font-size: 1.1rem; font-weight: 600; color: var(--navy); }
+    .fig-caption { font-size: .85rem; color: var(--muted); margin-bottom: .9rem; max-width: 760px; line-height: 1.6; }
+    .fig-caption strong { color: var(--text); }
+    .fig-wrap {
+      background: #fff; border: 1px solid var(--border); border-radius: var(--r);
+      padding: .9rem; box-shadow: var(--sh); overflow: hidden; transition: box-shadow .2s;
     }
+    .fig-wrap:hover { box-shadow: var(--sh-lg); }
+    .fig-wrap a { display: block; }
+    .fig-wrap img { width: 100%; height: auto; display: block; border-radius: 4px; }
+
+    /* two-column layout for smaller figures */
+    .fig-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 740px) { .fig-2col { grid-template-columns: 1fr; } }
+
+    /* results table */
+    .tbl-wrap { overflow-x: auto; background: #fff; border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--sh); }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
     thead tr { background: var(--navy); color: #fff; }
-    thead th { padding: .75rem 1rem; text-align: left; font-weight: 600; font-size: .82rem; letter-spacing: .04em; }
+    thead th { padding: .7rem .9rem; text-align: left; font-weight: 600; font-size: .8rem; letter-spacing: .04em; }
     tbody tr:nth-child(even) { background: var(--light); }
     tbody tr:hover { background: #edf2fb; }
-    tbody td { padding: .6rem 1rem; color: var(--text); border-bottom: 1px solid var(--border); }
+    tbody td { padding: .58rem .9rem; border-bottom: 1px solid var(--border); }
     .sig { font-weight: 700; color: var(--red); font-family: var(--mono); }
-    .or-up { color: var(--red); font-weight: 600; }
-    .or-dn { color: var(--green); font-weight: 600; }
+    .up  { color: var(--red); font-weight: 600; }
+    .dn  { color: var(--green); font-weight: 600; }
 
-    /* ── Footer ───────────────────────────────────────────────── */
-    footer {
-      background: var(--navy);
-      color: rgba(255,255,255,.65);
-      text-align: center;
-      padding: 2rem;
-      font-size: .83rem;
-    }
+    /* methods */
+    .method-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.1rem; }
+    .method-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); padding: 1.2rem 1.4rem; box-shadow: var(--sh); }
+    .method-card h4 { font-size: .9rem; font-weight: 600; color: var(--navy); margin-bottom: .45rem; display: flex; align-items: center; gap: .45rem; }
+    .method-card p { font-size: .83rem; color: var(--muted); line-height: 1.6; }
+    .badge { display: inline-block; background: var(--light); border: 1px solid var(--border); border-radius: 4px; padding: .1rem .42rem; font-family: var(--mono); font-size: .71rem; color: var(--navy); }
+
+    /* footer */
+    footer { background: var(--navy); color: rgba(255,255,255,.6); text-align: center; padding: 2rem; font-size: .82rem; }
     footer a { color: rgba(255,255,255,.8); }
     footer strong { color: #fff; }
 
-    /* ── Responsive ───────────────────────────────────────────── */
     @media (max-width: 640px) {
       .nav-links { display: none; }
       .hero { padding: 3rem 1.2rem 2.5rem; }
-      .hero-stats { gap: 1rem; }
-      .section { padding: 2.5rem 1.2rem; }
+      .sec  { padding: 2.5rem 1.2rem; }
     }
   </style>
 </head>
 <body>
 
-<!-- ── Navigation ──────────────────────────────────────────────────────── -->
+<!-- nav -->
 <nav>
   <a class="nav-brand" href="#">MSK-CHORD 2024 · Racial Disparities</a>
   <ul class="nav-links">
@@ -352,449 +184,259 @@
     <li><a href="#figures">Figures</a></li>
     <li><a href="#results">Results</a></li>
     <li><a href="#methods">Methods</a></li>
-    <li><a href="https://github.com/weikai202/msk_chord_analysis" target="_blank">GitHub</a></li>
+    <li><a href="https://github.com/weikai202/msk_chord_analysis" target="_blank">GitHub ↗</a></li>
   </ul>
 </nav>
 
-<!-- ── Hero ────────────────────────────────────────────────────────────── -->
+<!-- hero -->
 <section class="hero">
   <span class="hero-tag">BIOSTAT 625 · University of Michigan · 2024</span>
   <h1>Racial and Ethnic Disparities in Driver Gene Mutations in Non-Small Cell Lung Cancer</h1>
   <p class="hero-sub">
-    Leveraging MSK-CHORD 2024 (n = 25,040) to examine whether driver gene mutation
-    frequencies differ by race/ethnicity and how those differences associate with overall survival.
+    Leveraging MSK-CHORD 2024 (n&nbsp;=&nbsp;25,040) to examine whether driver gene mutation
+    frequencies differ by race/ethnicity and how those differences associate with overall survival
+    after multivariable adjustment.
   </p>
   <div class="hero-stats">
-    <div class="stat-card">
-      <span class="stat-num">7,775</span>
-      <span class="stat-lbl">NSCLC patients</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-num">8</span>
-      <span class="stat-lbl">Driver genes</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-num">5</span>
-      <span class="stat-lbl">Race/ethnic groups</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-num">3</span>
-      <span class="stat-lbl">Cancer cohorts</span>
-    </div>
+    <div class="stat-card"><span class="stat-num">7,775</span><span class="stat-lbl">NSCLC patients</span></div>
+    <div class="stat-card"><span class="stat-num">8</span><span class="stat-lbl">Driver genes</span></div>
+    <div class="stat-card"><span class="stat-num">5</span><span class="stat-lbl">Race/ethnic groups</span></div>
+    <div class="stat-card"><span class="stat-num">3</span><span class="stat-lbl">Cancer cohorts</span></div>
   </div>
-  <div class="hero-buttons">
+  <div class="hero-btns">
     <a class="btn btn-white" href="#figures">↓ View Figures</a>
-    <a class="btn btn-ghost" href="https://github.com/weikai202/msk_chord_analysis" target="_blank">
-      ⭐ GitHub Repository
-    </a>
+    <a class="btn btn-ghost" href="https://github.com/weikai202/msk_chord_analysis" target="_blank">⭐ GitHub Repository</a>
   </div>
 </section>
 
-<!-- ── Overview cards ──────────────────────────────────────────────────── -->
-<section class="section section-alt" id="overview">
-  <div class="section-inner">
-    <h2 class="section-heading">Project Overview</h2>
+<!-- overview -->
+<section class="sec sec-alt" id="overview">
+  <div class="inner">
+    <h2 class="sec-h">Project Overview</h2>
     <div class="divider"></div>
-    <p class="section-sub">
-      A five-step reproducible analysis pipeline examining the intersection of race/ethnicity,
-      tumour genomics, and survival outcomes in lung cancer.
-    </p>
+    <p class="sec-sub">A six-step reproducible pipeline from raw cBioPortal data to survival analysis and multi-cohort replication.</p>
     <div class="card-grid">
-      <div class="card">
-        <span class="card-icon">📊</span>
-        <h3>Descriptive Analysis</h3>
-        <p>Table 1 and Wilson-CI prevalence bar charts stratified by race/ethnicity across all driver genes.</p>
-      </div>
-      <div class="card">
-        <span class="card-icon">🧮</span>
-        <h3>Association Tests</h3>
-        <p>Chi-square / Fisher's exact tests with Benjamini-Hochberg FDR correction and Cramér's V effect sizes.</p>
-      </div>
-      <div class="card">
-        <span class="card-icon">🌲</span>
-        <h3>Logistic Regression</h3>
-        <p>Multivariable adjusted odds ratios controlling for smoking, stage, histology, sex, and age.</p>
-      </div>
-      <div class="card">
-        <span class="card-icon">📈</span>
-        <h3>Survival Analysis</h3>
-        <p>Kaplan-Meier curves, log-rank tests, and Cox PH model with a Race × EGFR interaction term.</p>
-      </div>
-      <div class="card">
-        <span class="card-icon">🔁</span>
-        <h3>Replication</h3>
-        <p>Independent validation of key findings in colorectal and breast cancer cohorts from the same dataset.</p>
-      </div>
-      <div class="card">
-        <span class="card-icon">🛡️</span>
-        <h3>Sensitivity Analysis</h3>
-        <p>MICE multiple imputation (m = 20) compared with complete-case results via Rubin's rules.</p>
-      </div>
+      <div class="card"><span class="card-icon">📊</span><h3>Descriptive Analysis</h3><p>Table&nbsp;1 and Wilson-CI prevalence bar charts for all driver genes across three cancer cohorts.</p></div>
+      <div class="card"><span class="card-icon">🧮</span><h3>Association Tests</h3><p>Chi-square / Fisher's exact with Benjamini-Hochberg FDR and Cramér's V effect sizes.</p></div>
+      <div class="card"><span class="card-icon">🌲</span><h3>Logistic Regression</h3><p>Multivariable adjusted ORs controlling for smoking, stage, histology, sex, and age.</p></div>
+      <div class="card"><span class="card-icon">📈</span><h3>Survival Analysis</h3><p>Kaplan-Meier curves and Cox PH model with a Race&nbsp;×&nbsp;EGFR interaction term.</p></div>
+      <div class="card"><span class="card-icon">🔁</span><h3>Replication</h3><p>Independent validation in colorectal and breast cancer cohorts from the same dataset.</p></div>
+      <div class="card"><span class="card-icon">🛡️</span><h3>Sensitivity Analysis</h3><p>MICE multiple imputation (m&nbsp;=&nbsp;20) vs. complete-case, pooled by Rubin's rules.</p></div>
     </div>
   </div>
 </section>
 
-<!-- ── Key Findings ────────────────────────────────────────────────────── -->
-<section class="section" id="findings">
-  <div class="section-inner">
-    <h2 class="section-heading">Key Findings</h2>
+<!-- findings -->
+<section class="sec" id="findings">
+  <div class="inner">
+    <h2 class="sec-h">Key Findings</h2>
     <div class="divider"></div>
-    <p class="section-sub">Three robust findings replicated after multivariable adjustment.</p>
+    <p class="sec-sub">Three robust findings replicated after multivariable adjustment.</p>
     <div class="finding-list">
       <div class="finding">
-        <strong>EGFR enrichment in Asian patients (adj. OR 2.93, 95% CI 2.43–3.53, FDR &lt; 0.001)</strong>
-        Asian patients carry a 39.1% EGFR mutation rate vs. 20.2% in White patients. This association
-        survives full adjustment for smoking, stage, histology, sex, and age, and is specific to
-        NSCLC — not observed in CRC or Breast cohorts.
+        <strong>EGFR enrichment in Asian patients — adj. OR 2.93 (95% CI 2.43–3.53), FDR &lt; 0.001</strong>
+        Asian patients carry a 54.0% EGFR mutation rate vs. 20.2% in White patients. This association
+        survives full covariate adjustment and is specific to NSCLC — not replicated in CRC or Breast cohorts,
+        pointing to lung-tissue-specific biology or population-level germline variation.
       </div>
       <div class="finding red">
-        <strong>KRAS / STK11 deficit in Asian patients (KRAS adj. OR 0.47; STK11 adj. OR 0.38)</strong>
-        White patients have the highest smoking rate (78.8%) and correspondingly the highest KRAS
-        (31.2%) and STK11 (14.5%) mutation rates. After adjustment these deficits in Asian patients
-        remain significant, suggesting both smoking-mediated and biology-mediated components.
+        <strong>KRAS and STK11 deficit in Asian patients — KRAS adj. OR 0.47; STK11 adj. OR 0.38</strong>
+        White patients have the highest smoking rate (78.8%) and correspondingly the highest KRAS (31.2%)
+        and STK11 (14.5%) mutation rates. Both deficits in Asian patients survive adjustment, suggesting
+        smoking-mediated and biology-mediated components coexist.
       </div>
       <div class="finding green">
-        <strong>Partial survival mediation through EGFR biology</strong>
-        Asian patients with EGFR-mutant tumours have median OS of 49.1 months vs. 48.2 months in
-        White EGFR-mutant patients. The Cox Race × EGFR interaction term is not significant after
-        full adjustment, suggesting the survival advantage operates through treatment access rather
-        than differential mutation biology.
+        <strong>EGFR mutation consistently improves survival within every racial group</strong>
+        EGFR-mutant patients gain 11–20 months of median OS vs. wild-type counterparts across all groups.
+        The Cox Race × EGFR interaction term is not statistically significant after full adjustment,
+        suggesting the benefit operates through treatment access (TKI availability) rather than
+        differential tumour biology.
       </div>
       <div class="finding gold">
-        <strong>Black patients: youngest median age (67 yr), highest Stage IV rate (50.8%), shortest OS (18.7 mo)</strong>
-        After adjusting for stage and smoking, Black patients' survival disadvantage attenuates but
-        does not disappear — consistent with residual confounding by treatment access or unmeasured
-        socioeconomic factors.
+        <strong>Black patients: youngest (median 67 yr), highest Stage IV rate (50.8%), shortest OS (18.7 mo)</strong>
+        After adjusting for stage and smoking, Black patients' survival disadvantage attenuates but persists,
+        consistent with residual confounding by socioeconomic factors or unmeasured treatment access barriers.
       </div>
     </div>
   </div>
 </section>
 
-<!-- ── Figures ─────────────────────────────────────────────────────────── -->
-<section class="section section-alt" id="figures">
-  <div class="section-inner">
-    <h2 class="section-heading">Figures</h2>
+<!-- figures -->
+<section class="sec sec-alt" id="figures">
+  <div class="inner">
+    <h2 class="sec-h">Figures</h2>
     <div class="divider"></div>
-    <p class="section-sub">
-      All figures are generated from the saved analysis outputs by
-      <code style="font-family:var(--mono); font-size:.85em;">R/08_export_web_figures.R</code>.
-      Click any figure to open at full resolution.
-    </p>
+    <p class="sec-sub">Click any figure to open at full resolution. PDFs converted to PNG by <code style="font-family:var(--mono);font-size:.84em">R/08_export_web_figures.R</code>.</p>
 
-    <!-- Figure 1 -->
-    <div class="fig-section">
-      <div class="fig-header">
-        <span class="fig-num">FIG 1</span>
-        <span class="fig-title">Driver gene mutation prevalence by race/ethnicity</span>
+    <!-- Group A: Mutation Prevalence -->
+    <div class="fig-group">
+      <div class="fig-group-title">A — Mutation Prevalence</div>
+
+      <div class="fig-panel">
+        <div class="fig-header"><span class="fig-num">FIG 1</span><span class="fig-title">Driver gene mutation prevalence — all three cohorts</span></div>
+        <p class="fig-caption">
+          Grouped bar charts showing raw (unadjusted) mutation prevalence for eight driver genes across
+          NSCLC, CRC, and Breast cancer cohorts. Error bars are <strong>95% Wilson confidence intervals</strong>.
+          Genes irrelevant to a cancer type (e.g. EGFR in CRC) show near-zero prevalence in all groups —
+          this is expected biology, not missing data.
+        </p>
+        <div class="fig-wrap"><a href="figures/fig_01_prevalence_all.png" target="_blank"><img src="figures/fig_01_prevalence_all.png" alt="Mutation prevalence bar chart — all cohorts" loading="lazy" /></a></div>
       </div>
-      <p class="fig-caption">
-        Grouped bar chart showing raw (unadjusted) mutation prevalence for eight driver genes
-        across five racial/ethnic groups. Error bars are <strong>95% Wilson confidence intervals</strong>
-        for a proportion, preferred over Wald CIs near p = 0 or p = 1. EGFR shows the most
-        striking disparity: Asian patients have more than twice the prevalence of White patients.
-      </p>
-      <div class="fig-img-wrap">
-        <a href="figures/fig_01_prevalence.png" target="_blank">
-          <img src="figures/fig_01_prevalence.png"
-               alt="Grouped bar chart: driver gene mutation prevalence by race/ethnicity in NSCLC" />
-        </a>
+
+      <div class="fig-2col">
+        <div class="fig-panel">
+          <div class="fig-header"><span class="fig-num">FIG 2</span><span class="fig-title">Prevalence — Colorectal Cancer (CRC)</span></div>
+          <p class="fig-caption">CRC cohort. KRAS dominates (~40%) with <strong>Black patients showing the highest KRAS rate</strong> (confirmed in replication logistic regression, OR 1.76 vs. White, p &lt; 0.001).</p>
+          <div class="fig-wrap"><a href="figures/fig_02_prevalence_crc.png" target="_blank"><img src="figures/fig_02_prevalence_crc.png" alt="Mutation prevalence — CRC" loading="lazy" /></a></div>
+        </div>
+        <div class="fig-panel">
+          <div class="fig-header"><span class="fig-num">FIG 3</span><span class="fig-title">Prevalence — Breast Cancer</span></div>
+          <p class="fig-caption">Breast cohort. TP53 dominates. <strong>Black patients show the highest TP53 rate</strong> in Breast cancer (adj. OR 1.93, p = 3×10⁻¹¹), a finding that does not replicate in NSCLC — tissue-specific disparity.</p>
+          <div class="fig-wrap"><a href="figures/fig_03_prevalence_breast.png" target="_blank"><img src="figures/fig_03_prevalence_breast.png" alt="Mutation prevalence — Breast" loading="lazy" /></a></div>
+        </div>
       </div>
     </div>
 
-    <!-- Figure 2 -->
-    <div class="fig-section">
-      <div class="fig-header">
-        <span class="fig-num">FIG 2</span>
-        <span class="fig-title">Association strength vs. statistical significance (BH-FDR)</span>
+    <!-- Group B: Association & Regression -->
+    <div class="fig-group">
+      <div class="fig-group-title">B — Association Tests &amp; Logistic Regression</div>
+
+      <div class="fig-panel">
+        <div class="fig-header"><span class="fig-num">FIG 4</span><span class="fig-title">Effect size vs. significance — BH-FDR corrected bubble plot</span></div>
+        <p class="fig-caption">
+          Volcano-style plot: <strong>Cramér's V</strong> (x-axis, effect size) vs. −log₁₀(q-value).
+          Genes above the dashed red line are significant after BH-FDR correction. EGFR has by far
+          the largest effect (V = 0.229) and highest significance (q = 3×10⁻⁸⁶). Bubble area is
+          proportional to sample size.
+        </p>
+        <div class="fig-wrap"><a href="figures/fig_08_bubble.png" target="_blank"><img src="figures/fig_08_bubble.png" alt="Bubble plot: Cramér's V vs -log10 q-value" loading="lazy" /></a></div>
       </div>
-      <p class="fig-caption">
-        Volcano-style bubble plot displaying <strong>Cramér's V</strong> (x-axis, effect size) against
-        −log₁₀(q-value) (y-axis). Genes above the dashed red line (q = 0.05) are significant after
-        Benjamini-Hochberg correction. Bubble size is proportional to sample size. EGFR stands out
-        with both the largest effect (V = 0.229) and the highest significance (q = 3 × 10⁻⁸⁶).
-      </p>
-      <div class="fig-img-wrap">
-        <a href="figures/fig_02_bubble.png" target="_blank">
-          <img src="figures/fig_02_bubble.png"
-               alt="Bubble plot: Cramér's V vs -log10 q-value for gene-race associations" />
-        </a>
+
+      <div class="fig-panel">
+        <div class="fig-header"><span class="fig-num">FIG 5</span><span class="fig-title">Multivariable adjusted odds ratios — EGFR, KRAS, STK11, KEAP1</span></div>
+        <p class="fig-caption">
+          Forest plot of <strong>adjusted ORs</strong> from multivariable logistic regression.
+          Reference: White (non-Hispanic). Adjusted for smoking history, disease stage, histologic
+          subtype, sex, and age. Significance labels reflect BH-FDR adjusted p-values.
+          EGFR and KRAS show the strongest and most consistent race effects.
+        </p>
+        <div class="fig-wrap"><a href="figures/fig_09_forest_or.png" target="_blank"><img src="figures/fig_09_forest_or.png" alt="Forest plot: adjusted ORs" loading="lazy" /></a></div>
       </div>
     </div>
 
-    <!-- Figure 3 -->
-    <div class="fig-section">
-      <div class="fig-header">
-        <span class="fig-num">FIG 3</span>
-        <span class="fig-title">Multivariable adjusted odds ratios — EGFR, KRAS, STK11, KEAP1</span>
+    <!-- Group C: Survival -->
+    <div class="fig-group">
+      <div class="fig-group-title">C — Survival Analysis</div>
+
+      <div class="fig-panel">
+        <div class="fig-header"><span class="fig-num">FIG 6</span><span class="fig-title">Kaplan-Meier curves — race/ethnicity × EGFR mutation status</span></div>
+        <p class="fig-caption">
+          KM survival curves for ten subgroups defined by race/ethnicity and EGFR mutation status.
+          <strong>Solid lines</strong> = EGFR mutant; <strong>faded lines</strong> = EGFR wild-type.
+          Log-rank test evaluates whether all survival functions are identical (H₀).
+          The risk table below the curves shows the number of patients still at risk at each time point.
+        </p>
+        <div class="fig-wrap"><a href="figures/fig_04_km_race_egfr.png" target="_blank"><img src="figures/fig_04_km_race_egfr.png" alt="KM curves: race × EGFR" loading="lazy" /></a></div>
       </div>
-      <p class="fig-caption">
-        Forest plot of <strong>adjusted odds ratios</strong> from multivariable logistic regression.
-        Reference group: White (non-Hispanic). Covariates: smoking history, disease stage, histologic
-        subtype (3 categories), sex, and age. OR &gt; 1 indicates higher odds in that group vs. White.
-        Significance labels reflect BH-FDR adjusted p-values (* &lt; 0.05, ** &lt; 0.01, *** &lt; 0.001).
-      </p>
-      <div class="fig-img-wrap">
-        <a href="figures/fig_03_forest_or.png" target="_blank">
-          <img src="figures/fig_03_forest_or.png"
-               alt="Forest plot: adjusted odds ratios for driver gene mutations by race/ethnicity" />
-        </a>
+
+      <div class="fig-panel">
+        <div class="fig-header"><span class="fig-num">FIG 7</span><span class="fig-title">Kaplan-Meier curves — EGFR mutation status only</span></div>
+        <p class="fig-caption">
+          Simplified KM curves comparing <strong>EGFR mutant vs. wild-type</strong> patients across
+          the full NSCLC cohort. EGFR mutation is associated with improved overall survival
+          (HR 0.82, p &lt; 0.001 in multivariable Cox model).
+        </p>
+        <div class="fig-wrap"><a href="figures/fig_05_km_egfr_only.png" target="_blank"><img src="figures/fig_05_km_egfr_only.png" alt="KM curves: EGFR status only" loading="lazy" /></a></div>
       </div>
     </div>
 
-    <!-- Figure 4 -->
-    <div class="fig-section">
-      <div class="fig-header">
-        <span class="fig-num">FIG 4</span>
-        <span class="fig-title">Median overall survival by race/ethnicity and EGFR mutation status</span>
-      </div>
-      <p class="fig-caption">
-        Each point represents the <strong>Kaplan-Meier median OS</strong> for a race × EGFR-status
-        subgroup. Triangles denote EGFR-mutant patients; circles denote EGFR wild-type patients.
-        EGFR mutation consistently improves median OS within every racial group. The EGFR-mutant
-        survival advantage is largest for Asian and Hispanic patients (~20 months improvement),
-        compared with ~11 months for White patients.
-      </p>
-      <div class="fig-img-wrap">
-        <a href="figures/fig_04_median_os.png" target="_blank">
-          <img src="figures/fig_04_median_os.png"
-               alt="Dot plot: median overall survival by race and EGFR mutation status" />
-        </a>
-      </div>
-    </div>
+    <!-- Group D: Replication & Sensitivity -->
+    <div class="fig-group">
+      <div class="fig-group-title">D — Replication &amp; Sensitivity</div>
 
-    <!-- Figure 5 -->
-    <div class="fig-section">
-      <div class="fig-header">
-        <span class="fig-num">FIG 5</span>
-        <span class="fig-title">Replication across NSCLC, CRC, and Breast cohorts</span>
+      <div class="fig-panel">
+        <div class="fig-header"><span class="fig-num">FIG 8</span><span class="fig-title">Replication across NSCLC, CRC, and Breast cohorts</span></div>
+        <p class="fig-caption">
+          Cross-cohort comparison of adjusted ORs for all eight genes.
+          <strong>EGFR enrichment in Asian patients is specific to NSCLC</strong> and attenuates
+          toward null in CRC and Breast, supporting a lung-tissue-specific mechanism.
+          TP53 enrichment in Black patients is significant in Breast but not NSCLC —
+          demonstrating cancer-type-specific racial genomic patterns.
+        </p>
+        <div class="fig-wrap"><a href="figures/fig_06_replication.png" target="_blank"><img src="figures/fig_06_replication.png" alt="Replication forest plot across three cohorts" loading="lazy" /></a></div>
       </div>
-      <p class="fig-caption">
-        Cross-cohort replication of adjusted ORs for EGFR, KRAS, and TP53 in Asian and Black patients.
-        <strong>EGFR enrichment in Asian patients is specific to NSCLC</strong> (OR 2.93) and
-        attenuates toward null in CRC and Breast — supporting a lung-tissue-specific biological
-        mechanism rather than a pan-cancer racial genomic pattern. TP53 enrichment in Black patients
-        is significant in Breast (OR 1.93) and CRC, suggesting a cancer-type-specific effect.
-      </p>
-      <div class="fig-img-wrap">
-        <a href="figures/fig_05_replication.png" target="_blank">
-          <img src="figures/fig_05_replication.png"
-               alt="Replication forest plot: adjusted ORs across NSCLC, CRC, and Breast cohorts" />
-        </a>
+
+      <div class="fig-panel">
+        <div class="fig-header"><span class="fig-num">FIG 9</span><span class="fig-title">Sensitivity analysis — Complete-case vs. MICE imputation</span></div>
+        <p class="fig-caption">
+          Side-by-side comparison of ORs from <strong>complete-case analysis</strong> (blue) and
+          <strong>MICE multiple imputation</strong> (m = 20, red) pooled by Rubin's rules.
+          Consistent point estimates and overlapping CIs confirm that the complete-case
+          results are not materially biased by the ~28% smoking-history missingness.
+        </p>
+        <div class="fig-wrap"><a href="figures/fig_07_sensitivity.png" target="_blank"><img src="figures/fig_07_sensitivity.png" alt="Sensitivity: complete-case vs MICE" loading="lazy" /></a></div>
       </div>
     </div>
 
   </div>
 </section>
 
-<!-- ── Results table ───────────────────────────────────────────────────── -->
-<section class="section" id="results">
-  <div class="section-inner">
-    <h2 class="section-heading">Primary Results Table</h2>
+<!-- results table -->
+<section class="sec" id="results">
+  <div class="inner">
+    <h2 class="sec-h">Primary Results Table</h2>
     <div class="divider"></div>
-    <p class="section-sub">
-      Chi-square / Fisher association tests with Benjamini-Hochberg FDR.
-      Cramér's V: 0.1 = small, 0.3 = medium, 0.5 = large (Cohen 1988).
-    </p>
+    <p class="sec-sub">Chi-square / Fisher association tests with BH-FDR. Cramér's V: 0.1 small · 0.3 medium · 0.5 large (Cohen 1988).</p>
     <div class="tbl-wrap">
       <table>
         <thead>
           <tr>
-            <th>Gene</th>
-            <th>Test</th>
-            <th>Statistic</th>
-            <th>p-value</th>
-            <th>q (BH-FDR)</th>
-            <th>Sig.</th>
-            <th>Cramér's V</th>
-            <th>Asian %</th>
-            <th>White %</th>
-            <th>Black %</th>
-            <th>Hispanic %</th>
+            <th>Gene</th><th>Test</th><th>χ²</th><th>p-value</th>
+            <th>q (BH-FDR)</th><th>Sig.</th><th>Cramér's V</th>
+            <th>Asian %</th><th>White %</th><th>Black %</th><th>Hispanic %</th>
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td><strong>EGFR</strong></td>
-            <td>Chi-square</td>
-            <td>408.7</td>
-            <td>3.7×10⁻⁸⁷</td>
-            <td>3.0×10⁻⁸⁶</td>
-            <td><span class="sig">***</span></td>
-            <td class="or-up">0.229</td>
-            <td class="or-up">54.0%</td>
-            <td>20.2%</td>
-            <td>26.8%</td>
-            <td>22.8%</td>
-          </tr>
-          <tr>
-            <td><strong>KRAS</strong></td>
-            <td>Chi-square</td>
-            <td>162.2</td>
-            <td>4.9×10⁻³⁴</td>
-            <td>2.0×10⁻³³</td>
-            <td><span class="sig">***</span></td>
-            <td>0.144</td>
-            <td class="or-dn">9.8%</td>
-            <td class="or-up">31.2%</td>
-            <td>22.2%</td>
-            <td>25.7%</td>
-          </tr>
-          <tr>
-            <td><strong>STK11</strong></td>
-            <td>Chi-square</td>
-            <td>73.1</td>
-            <td>5.0×10⁻¹⁵</td>
-            <td>1.3×10⁻¹⁴</td>
-            <td><span class="sig">***</span></td>
-            <td>0.097</td>
-            <td class="or-dn">4.0%</td>
-            <td class="or-up">14.5%</td>
-            <td>15.2%</td>
-            <td>9.5%</td>
-          </tr>
-          <tr>
-            <td><strong>KEAP1</strong></td>
-            <td>Chi-square</td>
-            <td>40.0</td>
-            <td>4.4×10⁻⁸</td>
-            <td>8.8×10⁻⁸</td>
-            <td><span class="sig">***</span></td>
-            <td>0.072</td>
-            <td class="or-dn">6.5%</td>
-            <td>14.4%</td>
-            <td>13.6%</td>
-            <td>11.6%</td>
-          </tr>
-          <tr>
-            <td><strong>TP53</strong></td>
-            <td>Chi-square</td>
-            <td>13.4</td>
-            <td>9.6×10⁻³</td>
-            <td>1.5×10⁻²</td>
-            <td><span class="sig">*</span></td>
-            <td>0.041</td>
-            <td>50.4%</td>
-            <td>50.9%</td>
-            <td class="or-up">59.8%</td>
-            <td>50.3%</td>
-          </tr>
-          <tr>
-            <td><strong>RB1</strong></td>
-            <td>Chi-square</td>
-            <td>11.4</td>
-            <td>2.2×10⁻²</td>
-            <td>3.0×10⁻²</td>
-            <td><span class="sig">*</span></td>
-            <td>0.038</td>
-            <td>6.5%</td>
-            <td>4.9%</td>
-            <td class="or-up">7.3%</td>
-            <td>3.5%</td>
-          </tr>
-          <tr>
-            <td>MET</td>
-            <td>Chi-square</td>
-            <td>9.6</td>
-            <td>4.8×10⁻²</td>
-            <td>5.5×10⁻²</td>
-            <td><span style="color:var(--muted)">ns</span></td>
-            <td>0.035</td>
-            <td>3.0%</td>
-            <td>4.6%</td>
-            <td>2.0%</td>
-            <td>4.9%</td>
-          </tr>
-          <tr>
-            <td>ERBB2</td>
-            <td>Chi-square</td>
-            <td>7.6</td>
-            <td>0.109</td>
-            <td>0.109</td>
-            <td><span style="color:var(--muted)">ns</span></td>
-            <td>0.031</td>
-            <td>3.7%</td>
-            <td>3.4%</td>
-            <td>4.3%</td>
-            <td>4.7%</td>
-          </tr>
+          <tr><td><strong>EGFR</strong></td><td>Chi-sq</td><td>408.7</td><td>3.7×10⁻⁸⁷</td><td>3.0×10⁻⁸⁶</td><td><span class="sig">***</span></td><td class="up">0.229</td><td class="up">54.0%</td><td>20.2%</td><td>26.8%</td><td>22.8%</td></tr>
+          <tr><td><strong>KRAS</strong></td><td>Chi-sq</td><td>162.2</td><td>4.9×10⁻³⁴</td><td>2.0×10⁻³³</td><td><span class="sig">***</span></td><td>0.144</td><td class="dn">9.8%</td><td class="up">31.2%</td><td>22.2%</td><td>25.7%</td></tr>
+          <tr><td><strong>STK11</strong></td><td>Chi-sq</td><td>73.1</td><td>5.0×10⁻¹⁵</td><td>1.3×10⁻¹⁴</td><td><span class="sig">***</span></td><td>0.097</td><td class="dn">4.0%</td><td class="up">14.5%</td><td>15.2%</td><td>9.5%</td></tr>
+          <tr><td><strong>KEAP1</strong></td><td>Chi-sq</td><td>40.0</td><td>4.4×10⁻⁸</td><td>8.8×10⁻⁸</td><td><span class="sig">***</span></td><td>0.072</td><td class="dn">6.5%</td><td>14.4%</td><td>13.6%</td><td>11.6%</td></tr>
+          <tr><td><strong>TP53</strong></td><td>Chi-sq</td><td>13.4</td><td>9.6×10⁻³</td><td>1.5×10⁻²</td><td><span class="sig">*</span></td><td>0.041</td><td>50.4%</td><td>50.9%</td><td class="up">59.8%</td><td>50.3%</td></tr>
+          <tr><td><strong>RB1</strong></td><td>Chi-sq</td><td>11.4</td><td>2.2×10⁻²</td><td>3.0×10⁻²</td><td><span class="sig">*</span></td><td>0.038</td><td>6.5%</td><td>4.9%</td><td class="up">7.3%</td><td>3.5%</td></tr>
+          <tr><td>MET</td><td>Chi-sq</td><td>9.6</td><td>4.8×10⁻²</td><td>5.5×10⁻²</td><td style="color:var(--muted)">ns</td><td>0.035</td><td>3.0%</td><td>4.6%</td><td>2.0%</td><td>4.9%</td></tr>
+          <tr><td>ERBB2</td><td>Chi-sq</td><td>7.6</td><td>0.109</td><td>0.109</td><td style="color:var(--muted)">ns</td><td>0.031</td><td>3.7%</td><td>3.4%</td><td>4.3%</td><td>4.7%</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 </section>
 
-<!-- ── Methods ─────────────────────────────────────────────────────────── -->
-<section class="section section-alt" id="methods">
-  <div class="section-inner">
-    <h2 class="section-heading">Statistical Methods</h2>
+<!-- methods -->
+<section class="sec sec-alt" id="methods">
+  <div class="inner">
+    <h2 class="sec-h">Statistical Methods</h2>
     <div class="divider"></div>
-    <p class="section-sub">
-      A five-step pipeline from data cleaning through survival analysis,
-      implemented in R with full reproducibility.
-    </p>
+    <p class="sec-sub">Six-step pipeline implemented in R with full reproducibility. Master script: <code style="font-family:var(--mono);font-size:.84em">Rscript R/07_run_all.R</code>.</p>
     <div class="method-grid">
-      <div class="method-card">
-        <h4><span class="badge">Step 1</span> Data Processing</h4>
-        <p>Downloaded from cBioPortal via <code>cbioportalR</code>. Race/ethnicity harmonised
-        to OMB classification. Critical fix: "Non-Spanish; Non-Hispanic" checked before "Hispanic"
-        in <code>case_when</code> to prevent ~5,000 misclassifications. MICE imputation
-        (m = 20, maxit = 10) for sensitivity analysis.</p>
-      </div>
-      <div class="method-card">
-        <h4><span class="badge">Step 2</span> Descriptive Statistics</h4>
-        <p>Table 1 generated with <code>gtsummary</code>. Mutation prevalence with
-        <strong>Wilson confidence intervals</strong>, preferred over Wald CIs for proportions
-        near 0 or 1 (Wilson 1927). Group differences assessed by Kruskal-Wallis (continuous)
-        and chi-square (categorical).</p>
-      </div>
-      <div class="method-card">
-        <h4><span class="badge">Step 3</span> Association Tests</h4>
-        <p>Chi-square used when all expected cell counts ≥ 5; Fisher's exact test
-        (B = 10,000 simulations) otherwise. Multiple testing corrected by
-        <strong>Benjamini-Hochberg FDR</strong> at q = 0.05. Effect size measured by
-        Cramér's V.</p>
-      </div>
-      <div class="method-card">
-        <h4><span class="badge">Step 4</span> Logistic Regression</h4>
-        <p>Separate binary outcome (<code>MUT_gene ~ RACE_ETH + SMOKING + STAGE + SEX + AGE + HIST3</code>)
-        for each of 8 genes. HISTOLOGY collapsed to 3 categories to avoid complete separation.
-        Falls back to <strong>Firth penalised regression</strong> if standard GLM fails.
-        Events-per-variable (EPV) checked before fitting.</p>
-      </div>
-      <div class="method-card">
-        <h4><span class="badge">Step 5</span> Survival Analysis</h4>
-        <p>Kaplan-Meier + log-rank test. Multivariable <strong>Cox PH</strong> with
-        <code>RACE_ETH × MUT_EGFR</code> interaction term. Proportional hazards assumption
-        tested via Schoenfeld residuals (<code>cox.zph()</code>). Tied event times handled
-        by Efron's method.</p>
-      </div>
-      <div class="method-card">
-        <h4><span class="badge">Step 6</span> Replication</h4>
-        <p>Same logistic regression pipeline applied to independent CRC and Breast cohorts
-        from MSK-CHORD 2024. Smoking history included only when &gt; 50% complete.
-        Three-cohort forest plot visualises consistency vs. tissue-specificity.</p>
-      </div>
+      <div class="method-card"><h4><span class="badge">Step 1</span> Data Processing</h4><p>Downloaded via <code>cbioportalR</code>. Race harmonised to OMB classification; critical fix prevents "Non-Spanish; Non-Hispanic" from matching the Hispanic substring. MICE imputation (m = 20, maxit = 10) for sensitivity.</p></div>
+      <div class="method-card"><h4><span class="badge">Step 2</span> Descriptive Statistics</h4><p>Table 1 via <code>gtsummary</code>. Mutation prevalence with <strong>Wilson CIs</strong> (preferred over Wald CIs near p = 0 or 1). Group differences by Kruskal-Wallis and chi-square.</p></div>
+      <div class="method-card"><h4><span class="badge">Step 3</span> Association Tests</h4><p>Chi-square when all expected counts ≥ 5; Fisher's exact (B = 10,000) otherwise. <strong>BH-FDR</strong> at q = 0.05 across 8 simultaneous tests. Effect size: Cramér's V.</p></div>
+      <div class="method-card"><h4><span class="badge">Step 4</span> Logistic Regression</h4><p>Binary outcome per gene. Histology collapsed to 3 categories to avoid complete separation. Falls back to <strong>Firth penalised regression</strong> on convergence failure. EPV ≥ 10 checked before fitting.</p></div>
+      <div class="method-card"><h4><span class="badge">Step 5</span> Survival Analysis</h4><p>Kaplan-Meier + log-rank. Cox PH with <code>RACE_ETH × MUT_EGFR</code> interaction. PH assumption tested via <strong>Schoenfeld residuals</strong> (<code>cox.zph()</code>). Tied times: Efron's method.</p></div>
+      <div class="method-card"><h4><span class="badge">Step 6</span> Replication</h4><p>Same logistic pipeline applied to CRC and Breast cohorts. Three-cohort forest plot visualises tissue-specificity vs. pan-cancer racial genomic effects.</p></div>
     </div>
   </div>
 </section>
 
-<!-- ── Footer ──────────────────────────────────────────────────────────── -->
+<!-- footer -->
 <footer>
-  <p>
-    <strong>Kai Wei</strong> · University of Michigan BIOSTAT 625 / PUBHLTH 614 · 2024
-  </p>
-  <p style="margin-top:.5rem;">
-    Data: <a href="https://www.cbioportal.org/study/summary?id=msk_chord_2024" target="_blank">
-      MSK-CHORD 2024 via cBioPortal
-    </a>
+  <p><strong>Kai Wei</strong> · University of Michigan BIOSTAT 625 / PUBHLTH 614 · 2024</p>
+  <p style="margin-top:.45rem;">
+    Data: <a href="https://www.cbioportal.org/study/summary?id=msk_chord_2024" target="_blank">MSK-CHORD 2024 via cBioPortal</a>
     &nbsp;·&nbsp;
-    Code: <a href="https://github.com/weikai202/msk_chord_analysis" target="_blank">
-      github.com/weikai202/msk_chord_analysis
-    </a>
+    Code: <a href="https://github.com/weikai202/msk_chord_analysis" target="_blank">github.com/weikai202/msk_chord_analysis</a>
   </p>
-  <p style="margin-top:.4rem; font-size:.78rem; color:rgba(255,255,255,.4);">
-    Built with R · ggplot2 · gtsummary · survminer · GitHub Pages
-  </p>
+  <p style="margin-top:.35rem;font-size:.77rem;color:rgba(255,255,255,.38);">Built with R · ggplot2 · survminer · gtsummary · GitHub Pages</p>
 </footer>
 
 </body>
