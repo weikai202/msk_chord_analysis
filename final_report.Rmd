@@ -4,35 +4,69 @@ subtitle: "BIOSTAT 629 — Final Written Report"
 author: "Kai Wei"
 date: "`r Sys.Date()`"
 output:
-  pdf_document:
-    number_sections: true
-    latex_engine: xelatex
-    keep_tex: false
   html_document:
     toc: true
     toc_float: true
     theme: flatly
     number_sections: true
     df_print: kable
+  # To render PDF, first run:  tinytex::install_tinytex()
+  # then add back:
+  #   pdf_document:
+  #     number_sections: true
+  #     latex_engine: xelatex
+  #     keep_tex: false
+# fontsize, geometry, linestretch apply to PDF only (ignored by html_document)
 fontsize: 12pt
 geometry: margin=1in
 linestretch: 2
 ---
 
 ```{r setup, include=FALSE}
-here::i_am("final_report.Rmd")
+# ── Locate project root robustly (works regardless of RStudio working dir) ──
+.locate_root <- function() {
+  candidates <- c(
+    "C:/Users/kai/msk_chord_analysis",
+    file.path(Sys.getenv("USERPROFILE"), "msk_chord_analysis"),
+    dirname(dirname(normalizePath(knitr::current_input(dir = TRUE),
+                                  mustWork = FALSE)))
+  )
+  for (p in candidates)
+    if (file.exists(file.path(p, "R", "00_setup.R"))) return(p)
+  getwd()
+}
+PROJ_ROOT <- .locate_root()
+
+# ── Find output/tables: project folder first, then Desktop fallback ──
+.find_tables <- function(root) {
+  candidates <- c(
+    file.path(root, "output", "tables"),
+    file.path(Sys.getenv("USERPROFILE"), "Desktop", "output", "tables")
+  )
+  for (d in candidates)
+    if (file.exists(file.path(d, "03_chisq_fdr_nsclc.csv"))) return(d)
+  stop(paste(
+    "Cannot find output/tables with 03_chisq_fdr_nsclc.csv.\n",
+    "Run R/07_run_all.R first, then re-knit."
+  ))
+}
+OUTPUT_TAB <- .find_tables(PROJ_ROOT)
+
+# ── Find data/raw for the survival RDS ──────────────────────────────────────
+DATA_DIR <- file.path(PROJ_ROOT, "data", "raw")
+
 knitr::opts_chunk$set(
   echo    = FALSE,
   message = FALSE,
   warning = FALSE,
   fig.align = "center"
 )
-knitr::opts_knit$set(root.dir = here::here())
+knitr::opts_knit$set(root.dir = PROJ_ROOT)
 
 library(tidyverse)
 library(knitr)
 library(kableExtra)
-library(here)
+library(here)       # kept for compatibility; not used for paths in this Rmd
 library(survival)
 library(survminer)
 library(patchwork)
@@ -45,8 +79,6 @@ RACE_COLORS <- c(
   "Other/Unknown"          = "#BBBBBB"
 )
 DRIVER_GENES <- c("EGFR","KRAS","TP53","STK11","KEAP1","RB1","ERBB2","MET")
-DATA_DIR     <- here("data", "raw")
-OUTPUT_TAB   <- here("output", "tables")
 ```
 
 ---
@@ -146,7 +178,7 @@ Figure 1 shows mutation prevalence for all eight driver genes across racial/ethn
 Table 2 presents chi-square and FDR-corrected results for all eight genes. Six genes showed significant associations after BH correction (q < 0.05). EGFR had the largest effect by far (Cramér's V = 0.229, q = 3.0 × 10^-86^), followed by KRAS (V = 0.144, q = 2.0 × 10^-33^) and STK11 (V = 0.097, q = 1.3 × 10^-14^). MET (q = 0.055) and ERBB2 (q = 0.109) did not reach the q = 0.05 threshold.
 
 ```{r table2}
-tbl2 <- read_csv(here(OUTPUT_TAB, "03_chisq_fdr_nsclc.csv"),
+tbl2 <- read_csv(file.path(OUTPUT_TAB, "03_chisq_fdr_nsclc.csv"),
                  show_col_types = FALSE) %>%
   select(Gene, test_used, statistic, p_value, q_value, sig_label, cramers_v) %>%
   mutate(
@@ -170,7 +202,7 @@ kable(tbl2,
 ```
 
 ```{r fig1-prevalence, fig.cap="Figure 1. Driver gene mutation prevalence by race/ethnicity in NSCLC (n = 7,775). Error bars represent 95% Wilson confidence intervals. EGFR shows the largest between-group disparity, with Asian patients carrying 2.7 times the prevalence of White patients.", fig.width=10, fig.height=5}
-prev_df <- read_csv(here(OUTPUT_TAB, "02_mutation_prevalence_nsclc.csv"),
+prev_df <- read_csv(file.path(OUTPUT_TAB, "02_mutation_prevalence_nsclc.csv"),
                     show_col_types = FALSE) %>%
   mutate(
     RACE_ETH = factor(RACE_ETH, levels = names(RACE_COLORS)),
@@ -198,7 +230,7 @@ ggplot(prev_df, aes(x = Gene, y = pct, fill = RACE_ETH)) +
 Figure 2 presents adjusted ORs for the four genes with significant FDR-adjusted associations in multivariable logistic regression. After controlling for smoking history, disease stage, histologic subtype, sex, and age, Asian patients retain 2.93 times the odds of EGFR mutation compared with White patients (95% CI 2.43--3.53, FDR-adjusted p < 0.001). Asian patients show less than half the odds of KRAS mutation (adj. OR 0.47, 95% CI 0.36--0.62) and less than 40% of the odds of STK11 mutation (adj. OR 0.38, 95% CI 0.25--0.57) compared with White patients. Black patients show a modestly higher EGFR rate than White patients in the unadjusted analysis, but this difference does not reach significance after adjustment (adj. OR 1.25, 95% CI 0.96--1.62, FDR-adjusted p = 0.24).
 
 ```{r fig2-forest, fig.cap="Figure 2. Adjusted odds ratios for EGFR, KRAS, STK11, and KEAP1 mutations by race/ethnicity. Reference group: White (non-Hispanic). Models adjust for smoking history, disease stage, histologic subtype (3 categories), sex, and age. Significance labels reflect BH-FDR adjusted p-values (* q < 0.05, *** q < 0.001). Log scale.", fig.width=9, fig.height=6}
-or_df <- read_csv(here(OUTPUT_TAB, "04_OR_logistic_nsclc_cc.csv"),
+or_df <- read_csv(file.path(OUTPUT_TAB, "04_OR_logistic_nsclc_cc.csv"),
                   show_col_types = FALSE) %>%
   filter(Gene %in% c("EGFR","KRAS","STK11","KEAP1")) %>%
   mutate(
@@ -274,12 +306,12 @@ if (!is.null(nsclc_df)) {
 Figure 4 shows adjusted ORs for EGFR and KRAS across NSCLC, CRC, and Breast cohorts. EGFR enrichment in Asian patients reaches OR 2.93 in NSCLC but attenuates toward the null in CRC (OR 0.39, 95% CI 0.14--0.86) and Breast (OR 0.35, 95% CI 0.06--1.15). This pattern supports H4: EGFR mutation enrichment in Asian patients is a lung-tissue-specific phenomenon rather than a pan-cancer racial genomic signal. By contrast, TP53 enrichment in Black patients reaches statistical significance in Breast cancer (adj. OR 1.93, 95% CI 1.59--2.34, p = 3 × 10^-11^) but not in NSCLC (adj. OR 1.36, 95% CI 1.09--1.70, FDR-adjusted p = 0.05), suggesting cancer-type-specific racial disparities for this gene as well.
 
 ```{r fig4-replication, fig.cap="Figure 4. Cross-cohort replication of adjusted ORs for EGFR and KRAS in Asian and Black patients. Reference group: White (non-Hispanic). EGFR enrichment in Asian patients is significant only in NSCLC, not in CRC or Breast cancer. Error bars: 95% confidence intervals.", fig.width=9, fig.height=5}
-nsclc_or <- read_csv(here(OUTPUT_TAB, "04_OR_logistic_nsclc_cc.csv"),
+nsclc_or <- read_csv(file.path(OUTPUT_TAB, "04_OR_logistic_nsclc_cc.csv"),
                      show_col_types = FALSE) %>%
   mutate(Cohort = "NSCLC") %>%
   select(Cohort, Gene, Race_Group, OR, CI_low, CI_high, p.value)
 
-rep_df <- read_csv(here(OUTPUT_TAB, "06_OR_replication_cohorts.csv"),
+rep_df <- read_csv(file.path(OUTPUT_TAB, "06_OR_replication_cohorts.csv"),
                    show_col_types = FALSE)
 
 rep_all <- bind_rows(nsclc_or, rep_df) %>%
