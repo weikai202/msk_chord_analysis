@@ -61,6 +61,16 @@ age?
 The cohort includes 25,040 patients across multiple cancer types; 7,775
 NSCLC patients with complete covariate data are used for the primary analysis.
 
+**Project website.** An interactive summary of all figures and results is
+published at:
+[https://weikai202.github.io/msk_chord_analysis/](https://weikai202.github.io/msk_chord_analysis/)
+
+The site is served via GitHub Pages from the `docs/` directory of the same
+repository and is updated automatically on every `git push`. It displays all
+seven analysis figures (prevalence bar charts, Kaplan-Meier curves,
+replication forest plot, and sensitivity analysis) embedded as PDFs alongside
+the primary results table and a methods summary.
+
 ---
 
 # Tool 1 — File Organisation and Naming
@@ -655,7 +665,8 @@ checklist <- tibble::tribble(
   "5. Pipeline",               "Master script (07_run_all.R) runs all steps",       "✓",
   "5. Pipeline",               "tryCatch prevents silent failures",                 "✓",
   "5. Pipeline",               "Four-command reproduction from fresh clone",        "✓",
-  "Dynamic report",            "This .Rmd integrates code, output, and narrative",  "✓"
+  "Dynamic report",            "This .Rmd integrates code, output, and narrative",  "✓",
+  "Dynamic report",            "Project website published via GitHub Pages",         "✓"
 )
 
 kable(checklist,
