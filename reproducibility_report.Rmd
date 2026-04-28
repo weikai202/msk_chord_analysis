@@ -20,6 +20,12 @@ output:
 ---
 
 ```{r global-options, include=FALSE}
+# Anchor here::here() to the directory that contains this .Rmd file.
+# This overrides RStudio's default working directory so that all
+# here::here() calls resolve correctly regardless of where RStudio
+# was opened or what the global working directory is set to.
+here::i_am("reproducibility_report.Rmd")
+
 knitr::opts_chunk$set(
   echo      = TRUE,
   message   = FALSE,
@@ -28,6 +34,10 @@ knitr::opts_chunk$set(
   fig.width = 8,
   fig.height = 5
 )
+
+# Also set knitr's root directory explicitly to the project root,
+# so relative paths in shell commands behave correctly too.
+knitr::opts_knit$set(root.dir = here::here())
 ```
 
 ---
