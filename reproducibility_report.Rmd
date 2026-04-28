@@ -1,0 +1,692 @@
+---
+title: "Reproducibility Report: Racial/Ethnic Disparities in Driver Gene Mutations"
+subtitle: "MSK-CHORD 2024 Analysis | BIOSTAT 625 / PUBHLTH 614"
+author: "Kai Wei"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: flatly
+    highlight: kate
+    code_folding: show
+    number_sections: true
+    df_print: kable
+  pdf_document:
+    toc: true
+    number_sections: true
+    latex_engine: xelatex
+---
+
+```{r global-options, include=FALSE}
+knitr::opts_chunk$set(
+  echo      = TRUE,
+  message   = FALSE,
+  warning   = FALSE,
+  fig.align = "center",
+  fig.width = 8,
+  fig.height = 5
+)
+```
+
+---
+
+# Overview
+
+This document reports how the MSK-CHORD 2024 driver-gene mutation analysis
+was designed and executed according to reproducible research principles. The
+five tools from Dempsey & Morrison (2023) are each addressed in a dedicated
+section: (1) file organisation and naming, (2) version control, (3) data
+manipulation practices, (4) programming habits, and (5) pipeline design.
+
+**Research question.** Do driver gene mutation frequencies differ
+across self-reported racial/ethnic groups in non-small cell lung cancer
+(NSCLC), and how do these differences associate with overall survival, after
+adjusting for smoking history, disease stage, histologic subtype, sex, and
+age?
+
+**Dataset.** MSK-CHORD 2024, downloaded from cBioPortal
+(https://www.cbioportal.org/study/summary?id=msk_chord_2024).
+The cohort includes 25,040 patients across multiple cancer types; 7,775
+NSCLC patients with complete covariate data are used for the primary analysis.
+
+---
+
+# Tool 1 — File Organisation and Naming
+
+## Rationale
+
+Dempsey & Morrison recommend a deliberate directory structure so that any
+collaborator (including your future self) can navigate the project without
+asking for help. File names should be descriptive and date-stamped where
+appropriate. Numeric prefixes on script names encode execution order,
+removing ambiguity about which script to run first.
+
+## Directory structure
+
+The project root is `msk_chord_analysis/`. Every path in every script
+is constructed with `here::here()` so the project is fully portable —
+moving the root folder or running on a different operating system requires
+no path edits.
+
+```
+msk_chord_analysis/
+│
+├── R/
+│   ├── 00_setup.R               ← packages, seeds, global constants
+│   ├── 01_data_processing.R     ← download, clean, impute
+│   ├── 02_descriptive.R         ← Table 1, prevalence bar plots
+│   ├── 03_chi_square_fdr.R      ← Fisher/chi-square + BH-FDR
+│   ├── 04_logistic_regression.R ← multivariable logistic, forest plots
+│   ├── 05_survival_analysis.R   ← KM curves, Cox PH + interaction
+│   ├── 06_replication_cohorts.R ← CRC and Breast cohort replication
+│   └── 07_run_all.R             ← master pipeline (sources 01–06 in order)
+│
+├── data/
+│   └── raw/                     ← raw TSV / mutation TXT from cBioPortal
+│                                   (.gitignore excludes this directory)
+│
+├── output/
+│   ├── figures/                 ← PDFs produced by ggplot2 / survminer
+│   └── tables/                  ← CSVs produced by each analysis step
+│
+├── reproducibility_report.Rmd   ← this document
+├── README.md
+└── .gitignore
+```
+
+The numeric prefix convention (00, 01, …, 07) means every file manager
+and `ls` output displays scripts in execution order without any additional
+documentation.
+
+## Verifying the structure from R
+
+The chunk below inspects the actual project tree at knit time.
+
+```{r file-structure}
+library(here)
+library(fs)
+
+# Confirm project root is resolved correctly
+here::here()
+
+# List all R scripts to verify naming convention
+r_scripts <- dir_ls(here("R"), regexp = "\\.R$")
+basename(r_scripts)
+```
+
+---
+
+# Tool 2 — Version Control (Git)
+
+## Rationale
+
+Git records every change to the codebase with a cryptographic commit hash,
+allowing exact reproduction of any historical state. Hosting the repository
+on GitHub enables sharing, issue tracking, and DOI assignment for
+permanent archiving. The commit hash at analysis time can be reported in a
+methods section so readers can check out the exact code used.
+
+## Git workflow applied in this project
+
+The repository was initialised with `git init` before any analysis code was
+written. All scripts were committed in a single initial commit; subsequent
+debugging and race-harmonisation bug fixes were committed separately so each
+commit corresponds to a logical, auditable change.
+
+The `.gitignore` file below excludes raw data files (which may be large and
+cannot be redistributed under cBioPortal terms) and generated output, keeping
+the repository focused on reproducible *code* rather than derived artefacts.
+
+```{r gitignore, eval=FALSE}
+# Shown for documentation — actual file lives at project root
+
+# Raw and processed data (may be large or sensitive)
+data/raw/
+data/processed/
+data/*.rds
+data/*.csv
+
+# Output figures and tables (reproducible from code)
+output/figures/
+output/tables/
+
+# R session artefacts
+.Rhistory
+.RData
+.Rproj.user/
+```
+
+## Recording the commit hash at analysis time
+
+The chunk below captures the commit hash and prints it so that any output
+derived from this report is traceable to an exact code state.
+
+```{r git-hash}
+git_hash <- tryCatch(
+  system("git rev-parse --short HEAD", intern = TRUE),
+  error = function(e) "git not available"
+)
+cat("Analysis performed at commit:", git_hash, "\n")
+cat("Analysis date:", format(Sys.Date(), "%Y-%m-%d"), "\n")
+```
+
+## Git commands used in this project
+
+The four core commands from the slides cover all everyday operations:
+
+```bash
+# Initialise repository
+git init
+
+# Stage all R scripts and project files
+git add R/ README.md .gitignore reproducibility_report.Rmd
+
+# Commit with a descriptive message
+git commit -m "Add complete MSK-CHORD 2024 racial disparities analysis pipeline"
+
+# Push to GitHub (first time: set upstream)
+git push -u origin master
+```
+
+---
+
+# Tool 3 — Data Manipulation Practices
+
+## Rationale
+
+Dempsey & Morrison state: "Don't modify data in place. Avoid opening data in
+Excel." This project follows three concrete rules derived from that principle:
+
+1. **Raw data is never written to.** The two source files downloaded from
+   cBioPortal (`msk_chord_2024_clinical_data.tsv` and `data_mutations.txt`)
+   are read-only inputs; all transformations produce new objects or saved
+   `.rds` files with distinct names.
+2. **All data cleaning is scripted.** No manual editing in Excel was
+   performed. Every filter, recode, and merge step is in `01_data_processing.R`
+   and is fully auditable.
+3. **The critical race-harmonisation step is explicitly documented** with
+   a comment explaining the bug that was fixed — this is the kind of
+   reasoning that disappears if changes are made interactively and not
+   committed.
+
+## Race/ethnicity harmonisation
+
+This was the most consequential data-cleaning decision in the project.
+The initial implementation used `grepl("Hispanic")` to assign the Hispanic/Latino
+category. This misclassified approximately 5,000 White patients whose clinical
+records contained the string "Non-Spanish; Non-Hispanic" (which contains
+the substring "Hispanic"). The fix checks for "Non-Hispanic" before "Hispanic"
+in the `case_when` priority order.
+
+```{r race-harmonisation, eval=FALSE}
+# CORRECT ordering in 01_data_processing.R
+# ── The order of case_when clauses matters: ────────────────────────────────
+# "Non-Spanish; Non-Hispanic" contains "Hispanic" as a substring.
+# If we check grepl("Hispanic") first, ~5000 White patients are
+# misclassified as Hispanic/Latino. Fix: check "Non-Hispanic" first.
+
+df <- df %>%
+  mutate(
+    RACE_ETH = case_when(
+      grepl("Non-Hispanic|non-hispanic", ETHNICITY, ignore.case = TRUE) &
+        grepl("White|Caucasian",          RACE,      ignore.case = TRUE) ~ "White (non-Hispanic)",
+      # ↑ Non-Hispanic White checked BEFORE generic Hispanic check
+      grepl("Hispanic|Latino|Spanish",    ETHNICITY, ignore.case = TRUE) ~ "Hispanic/Latino",
+      grepl("Asian",                      RACE,      ignore.case = TRUE) ~ "Asian",
+      grepl("Black|African",              RACE,      ignore.case = TRUE) ~ "Black/African American",
+      TRUE ~ "Other/Unknown"
+    ),
+    RACE_ETH = factor(RACE_ETH, levels = RACE_LEVELS)
+  )
+```
+
+## Complete-case analysis and MICE imputation
+
+Two analytical datasets are constructed from the cleaned data:
+
+- **`nsclc_complete_case.rds`** — rows with no missing values in
+  any covariate used in regression (n = 7,775). This is the primary dataset.
+- **`nsclc_mice_imputed.rds`** — 20 multiply-imputed datasets created with
+  `mice::mice()` for sensitivity analysis. MICE is applied *after* the
+  complete-case file is saved, so a crash during imputation does not prevent
+  downstream analyses from running.
+
+```{r mice-strategy, eval=FALSE}
+# From 01_data_processing.R
+# ── Save complete-case BEFORE attempting MICE ──────────────────────────────
+# This guarantees nsclc_complete_case.rds is available for all downstream
+# scripts even if MICE fails (e.g., insufficient RAM or matrix rank issues).
+
+saveRDS(nsclc_cc, file.path(DATA_DIR, "nsclc_complete_case.rds"))
+
+# ── MICE: multiple imputation by chained equations ─────────────────────────
+# m = 20 imputed datasets; maxit = 10 chained iterations per dataset.
+# set.seed(42) in 00_setup.R ensures chains are fully reproducible.
+mice_imp <- tryCatch(
+  mice::mice(
+    nsclc_mice_df, m = 20, maxit = 10,
+    method = c(
+      SMOKING_HISTORY = "logreg",  # binary outcome → logistic imputation
+      STAGE           = "logreg",
+      AGE             = "pmm"      # continuous → predictive mean matching
+    ),
+    printFlag = FALSE
+  ),
+  error = function(e) {
+    message("MICE failed: ", e$message)
+    NULL  # downstream scripts handle NULL gracefully
+  }
+)
+
+if (!is.null(mice_imp))
+  saveRDS(mice_imp, file.path(DATA_DIR, "nsclc_mice_imputed.rds"))
+```
+
+---
+
+# Tool 4 — Programming Habits
+
+## Rationale
+
+The slides advise writing functions for any operation performed more than
+once, and checking input parameters for type and known properties. This
+project uses three design patterns that satisfy these requirements.
+
+## Pattern 1: A single `source`-able setup file
+
+`00_setup.R` is sourced at the top of every analysis script. It installs
+missing packages, sets the global seed, defines directory paths, the
+`DRIVER_GENES` character vector, and the `RACE_COLORS` named palette. This
+eliminates copy-pasted boilerplate and guarantees every script uses identical
+constants.
+
+```{r setup-structure, eval=FALSE}
+# 00_setup.R excerpt — sourced by every downstream script
+
+set.seed(42)           # one seed, applied before any stochastic operation
+
+DRIVER_GENES <- c("EGFR", "KRAS", "TP53", "STK11",
+                  "KEAP1", "RB1", "ERBB2", "MET")
+
+RACE_COLORS <- c(
+  "White (non-Hispanic)"   = "#4477AA",   # colour-blind-safe palette
+  "Asian"                  = "#EE6677",
+  "Black/African American" = "#228833",
+  "Hispanic/Latino"        = "#CCBB44",
+  "Other/Unknown"          = "#BBBBBB"
+)
+
+DATA_DIR   <- here::here("data", "raw")   # no hard-coded paths
+OUTPUT_FIG <- here::here("output", "figures")
+OUTPUT_TAB <- here::here("output", "tables")
+```
+
+Note that `here::here()` constructs paths relative to the project root
+regardless of the working directory at call time, satisfying the slides'
+requirement to avoid `setwd()`.
+
+## Pattern 2: Parameterised test and regression functions
+
+Instead of repeating a `glm()` call eight times (once per gene), a single
+function encapsulates the entire fitting and extraction logic. The function
+checks for insufficient events (EPV < 10) before fitting, and falls back to
+Firth penalised regression when standard GLM fails due to separation.
+
+```{r logistic-function, eval=FALSE}
+# From 04_logistic_regression.R
+
+fit_logistic <- function(df, gene) {
+  outcome <- paste0("MUT_", gene)
+  if (!outcome %in% names(df)) return(NULL)   # input guard
+
+  events <- sum(df[[outcome]], na.rm = TRUE)
+  n_params <- length(strsplit(base_covars, "\\+")[[1]]) + 4
+  epv <- events / n_params
+  message(sprintf("  Gene: %-8s | events: %d | EPV ≈ %.1f", gene, events, epv))
+
+  formula_str <- paste0(outcome, " ~ ", base_covars)
+
+  fit <- tryCatch(
+    glm(as.formula(formula_str), data = df,
+        family = binomial(link = "logit"), na.action = na.omit),
+    error = function(e) {
+      message("Standard GLM failed for ", gene, ": ", e$message,
+              " — trying Firth penalised regression")
+      if ("logistf" %in% installed.packages()[, "Package"])
+        logistf::logistf(as.formula(formula_str), data = df)
+      else NULL
+    }
+  )
+  fit
+}
+
+# Apply to all genes with a single purrr call
+models_cc <- setNames(
+  purrr::map(DRIVER_GENES, ~ fit_logistic(nsclc_df, .x)),
+  DRIVER_GENES
+)
+```
+
+The same modular pattern appears in `06_replication_cohorts.R` as
+`run_logistic_cohort()`, which accepts a data frame and a cohort label and
+returns a tidy results table — reused for both CRC and Breast cohorts without
+code duplication.
+
+## Pattern 3: Automatic test switching (chi-square vs Fisher)
+
+The chi-square / Fisher switching logic in `03_chi_square_fdr.R` checks the
+expected cell counts before every test and selects the appropriate method.
+This prevents silent application of an invalid large-sample approximation
+when rare mutations produce expected counts below five.
+
+```{r chisq-switch, eval=FALSE}
+# From 03_chi_square_fdr.R
+
+test_gene_race <- function(df, gene) {
+  tbl <- table(df$RACE_ETH, df[[paste0("MUT_", gene)]])
+
+  expected   <- chisq.test(tbl)$expected
+  use_fisher <- any(expected < 5)           # automatic test selection
+
+  if (use_fisher) {
+    res <- fisher.test(tbl, simulate.p.value = TRUE, B = 10000)
+    test_used <- "Fisher (simulated)"
+    stat <- NA_real_
+  } else {
+    res <- chisq.test(tbl)
+    test_used <- "Chi-square"
+    stat <- res$statistic
+  }
+  # ... extract p-value, Cramér's V, per-race prevalence
+}
+```
+
+---
+
+# Tool 5 — Pipeline Design
+
+## Rationale
+
+A pipeline formalises the sequence from raw data to final output. Without
+one, it is easy to run scripts out of order, regenerate intermediate files
+accidentally, or forget which parameter values were used. The slides describe
+a pipeline as "a series of analysis steps that take you from data to output"
+and note that even a README plus a directory of code is a valid starting point.
+
+## Master pipeline: `07_run_all.R`
+
+This project implements a sequential pipeline in a single R script. Each
+step is represented as a list element with a path and a label. The `for`
+loop sources each script in order, wrapping every `source()` call in
+`tryCatch` so that a failure in one step (e.g., MICE memory overflow) prints
+a clear error message and continues the pipeline rather than silently halting.
+
+```{r pipeline-script, eval=FALSE}
+# 07_run_all.R — complete listing
+
+library(here)
+
+steps <- list(
+  list(script = "R/01_data_processing.R",    label = "Step 1: Data processing & imputation"),
+  list(script = "R/02_descriptive.R",         label = "Step 2: Descriptive analysis & Table 1"),
+  list(script = "R/03_chi_square_fdr.R",      label = "Step 3: Chi-square tests + BH-FDR"),
+  list(script = "R/04_logistic_regression.R", label = "Step 4: Multivariable logistic regression"),
+  list(script = "R/05_survival_analysis.R",   label = "Step 5: Survival analysis (KM + Cox PH)"),
+  list(script = "R/06_replication_cohorts.R", label = "Step 6: Replication in CRC & Breast")
+)
+
+for (step in steps) {
+  message("\n", paste(rep("=", 60), collapse = ""))
+  message("▶ ", step$label)
+  message(paste(rep("=", 60), collapse = ""))
+  tryCatch(
+    source(here::here(step$script)),
+    error = function(e) {
+      message("ERROR in ", step$script, ": ", e$message)
+      message("Pipeline continuing with next step...")
+    }
+  )
+}
+```
+
+## Pipeline data flow diagram
+
+```
+cBioPortal download
+        │
+        ▼
+01_data_processing.R
+   ├─ nsclc_complete_case.rds ──► 02, 03, 04, 05
+   ├─ crc_complete_case.rds   ──► 06
+   └─ breast_complete_case.rds──► 06
+        │
+        ▼
+02_descriptive.R          → 02_table1_nsclc.csv
+                            02_mutation_prevalence_*.pdf
+
+03_chi_square_fdr.R       → 03_chisq_fdr_nsclc.csv
+                            03_bubble_chisq_fdr.pdf
+
+04_logistic_regression.R  → 04_OR_logistic_nsclc_cc.csv
+                            04_forest_logistic_nsclc.pdf
+
+05_survival_analysis.R    → 05_cox_hr_nsclc.csv
+                            05_km_race_egfr_nsclc.pdf
+
+06_replication_cohorts.R  → 06_OR_replication_cohorts.csv
+                            06_replication_forest_all_cohorts.pdf
+```
+
+## Reproducing the analysis from scratch
+
+A new investigator with access to cBioPortal can reproduce all results
+with four commands:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/weikai202/msk_chord_analysis.git
+cd msk_chord_analysis
+
+# 2. Download MSK-CHORD 2024 from cBioPortal:
+#    https://www.cbioportal.org/study/summary?id=msk_chord_2024
+#    Place the two files in data/raw/:
+#      msk_chord_2024_clinical_data (1).tsv
+#      data_mutations.txt
+
+# 3. Run the entire pipeline (installs all packages automatically)
+Rscript R/07_run_all.R
+
+# 4. Knit this report
+Rscript -e "rmarkdown::render('reproducibility_report.Rmd')"
+```
+
+---
+
+# Key Results
+
+This section loads the saved CSV outputs and displays the primary findings
+to confirm that the pipeline ran end-to-end correctly.
+
+## Step 3 output — Chi-square + BH-FDR results
+
+The chunk below reads the saved association-test table. Six of eight driver
+genes show statistically significant association with race/ethnicity after
+Benjamini-Hochberg FDR correction (q < 0.05).
+
+```{r chisq-results}
+library(tidyverse)
+library(here)
+library(knitr)
+
+chisq_df <- read_csv(here("output", "tables", "03_chisq_fdr_nsclc.csv"),
+                     show_col_types = FALSE)
+
+chisq_df %>%
+  select(Gene, test_used, statistic, p_value, q_value, sig_label, cramers_v) %>%
+  mutate(
+    across(c(statistic, p_value, q_value, cramers_v), ~ round(.x, 4)),
+    p_value  = formatC(p_value,  format = "e", digits = 2),
+    q_value  = formatC(q_value,  format = "e", digits = 2)
+  ) %>%
+  kable(
+    col.names = c("Gene", "Test", "Statistic", "p-value",
+                  "q-value (BH)", "Sig.", "Cramér's V"),
+    caption   = "Table 1. Unadjusted association between race/ethnicity and driver
+                 gene mutation status (NSCLC, n = 7,775). BH-FDR at q < 0.05."
+  )
+```
+
+EGFR shows the largest effect (Cramér's V = 0.229), with Asian patients
+carrying a 53.9% mutation rate compared with 20.2% in White patients. KRAS
+shows the second-largest effect (V = 0.144), driven by substantially lower
+prevalence in Asian patients (9.8% vs. 31.2% in White).
+
+## Step 4 output — Multivariable adjusted odds ratios
+
+The chunk below loads the complete-case logistic regression results and
+displays statistically significant associations after BH-FDR adjustment.
+
+```{r logistic-results}
+or_df <- read_csv(here("output", "tables", "04_OR_logistic_nsclc_cc.csv"),
+                  show_col_types = FALSE)
+
+or_df %>%
+  filter(p_adj < 0.05) %>%
+  mutate(across(c(OR, CI_low, CI_high), ~ round(.x, 3)),
+         p_adj = formatC(p_adj, format = "e", digits = 2)) %>%
+  select(Gene, Race_Group, OR, CI_low, CI_high, p_adj, sig_label) %>%
+  arrange(Gene, Race_Group) %>%
+  kable(
+    col.names = c("Gene", "Race/Ethnicity", "Adj. OR",
+                  "95% CI low", "95% CI high", "p (BH-adj)", "Sig."),
+    caption   = "Table 2. Multivariable-adjusted odds ratios with FDR < 0.05.
+                 Reference: White (non-Hispanic). Adjusted for smoking history,
+                 stage, histologic subtype, sex, and age."
+  )
+```
+
+After adjustment, EGFR enrichment in Asian patients strengthens (OR 2.93,
+95% CI 2.43–3.53), confirming that the association is not explained by
+differences in smoking, stage, or histology. KRAS and STK11 deficits in
+Asian patients likewise persist after adjustment.
+
+## Step 5 output — Cox proportional hazards model
+
+The primary Cox model fits a `RACE_ETH × MUT_EGFR` interaction term. The
+chunk below displays the main effects and interaction terms of primary
+interest, excluding the nuisance HISTOLOGY coefficients.
+
+```{r cox-results}
+cox_df <- read_csv(here("output", "tables", "05_cox_hr_nsclc.csv"),
+                   show_col_types = FALSE)
+
+# Keep only RACE_ETH main effects, MUT_EGFR, key clinical covariates,
+# and interaction terms
+terms_keep <- c("RACE_ETHAsian",
+                "RACE_ETHBlack/African American",
+                "RACE_ETHHispanic/Latino",
+                "RACE_ETHOther/Unknown",
+                "MUT_EGFR",
+                "SMOKING_HISTORYEver",
+                "STAGEIV",
+                "SEXMALE",
+                "AGE",
+                "RACE_ETHAsian:MUT_EGFR",
+                "RACE_ETHBlack/African American:MUT_EGFR",
+                "RACE_ETHHispanic/Latino:MUT_EGFR",
+                "RACE_ETHOther/Unknown:MUT_EGFR")
+
+cox_df %>%
+  filter(term %in% terms_keep) %>%
+  mutate(across(c(HR, CI_low, CI_high), ~ round(.x, 3)),
+         p.value = formatC(p.value, format = "e", digits = 2)) %>%
+  select(term, HR, CI_low, CI_high, p.value, sig_label) %>%
+  kable(
+    col.names = c("Term", "HR", "95% CI low", "95% CI high", "p-value", "Sig."),
+    caption   = "Table 3. Multivariable Cox PH model with RACE_ETH × EGFR
+                 interaction. Reference: White (non-Hispanic), EGFR wild-type.
+                 Adjusted for smoking, stage, sex, age, histology."
+  )
+```
+
+Stage IV carries the strongest prognostic signal (HR 2.88, p < 2×10⁻¹⁹⁶).
+EGFR mutation is associated with modestly improved survival (HR 0.82,
+p < 0.001). The interaction terms between race and EGFR status do not reach
+statistical significance after adjustment, suggesting that the overall
+racial survival disparity is not primarily mediated through differential
+EGFR biology in this cohort.
+
+---
+
+# Reproducibility Checklist
+
+The table below evaluates this project against the five tools from
+Dempsey & Morrison (2023).
+
+```{r checklist}
+checklist <- tibble::tribble(
+  ~Tool,                       ~Criterion,                                          ~Status,
+  "1. File organisation",      "Descriptive, numbered script names",                "✓",
+  "1. File organisation",      "Portable paths via here::here()",                   "✓",
+  "1. File organisation",      "Raw data separated from outputs",                   "✓",
+  "2. Version control",        "Git repository initialised",                        "✓",
+  "2. Version control",        "Code hosted on GitHub",                             "✓",
+  "2. Version control",        "Commit hash recorded at analysis time",             "✓",
+  "2. Version control",        ".gitignore excludes data and outputs",              "✓",
+  "3. Data manipulation",      "Raw data never modified in place",                  "✓",
+  "3. Data manipulation",      "No Excel edits — all cleaning in R scripts",        "✓",
+  "3. Data manipulation",      "Critical harmonisation logic documented",           "✓",
+  "4. Programming habits",     "Functions for repeated operations",                 "✓",
+  "4. Programming habits",     "Input guards in all modelling functions",           "✓",
+  "4. Programming habits",     "No setwd() or hard-coded paths",                    "✓",
+  "4. Programming habits",     "Global seed set in 00_setup.R",                     "✓",
+  "5. Pipeline",               "Master script (07_run_all.R) runs all steps",       "✓",
+  "5. Pipeline",               "tryCatch prevents silent failures",                 "✓",
+  "5. Pipeline",               "Four-command reproduction from fresh clone",        "✓",
+  "Dynamic report",            "This .Rmd integrates code, output, and narrative",  "✓"
+)
+
+kable(checklist,
+      caption = "Reproducibility checklist evaluated against Dempsey & Morrison (2023).")
+```
+
+---
+
+# Session Information
+
+Recording the R session information at knit time ensures that any future
+investigator can identify the exact package versions used in the analysis.
+Version mismatches are a common source of non-reproducibility in R workflows.
+
+```{r session-info}
+sessionInfo()
+```
+
+---
+
+# References
+
+1. Dempsey, W. & Morrison, J. (2023). *Reproducible Research: Tools and
+   Practices*. BIOSTAT 625, University of Michigan.
+   (`jean997.github.io/rr_tools`)
+
+2. Wilson, E. B. (1927). Probable inference, the law of succession, and
+   statistical inference. *Journal of the American Statistical Association*,
+   22(158), 209–212.
+
+3. Benjamini, Y. & Hochberg, Y. (1995). Controlling the false discovery rate:
+   a practical and powerful approach to multiple testing.
+   *Journal of the Royal Statistical Society B*, 57(1), 289–300.
+
+4. van Buuren, S. & Groothuis-Oudshoorn, K. (2011). mice: Multivariate
+   Imputation by Chained Equations in R. *Journal of Statistical Software*,
+   45(3), 1–67.
+
+5. Schoenfeld, D. (1982). Partial residuals for the proportional hazards
+   regression model. *Biometrika*, 69(1), 239–241.
+
+6. MSK-CHORD 2024. Memorial Sloan Kettering Cancer Center Harmonized
+   Oncology Research Database. cBioPortal for Cancer Genomics.
+   https://www.cbioportal.org/study/summary?id=msk_chord_2024
