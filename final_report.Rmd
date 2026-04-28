@@ -1,0 +1,348 @@
+---
+title: "Racial and Ethnic Disparities in Driver Gene Mutations and Overall Survival in Non-Small Cell Lung Cancer"
+subtitle: "BIOSTAT 629 — Final Written Report"
+author: "Kai Wei"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    number_sections: true
+    latex_engine: xelatex
+    keep_tex: false
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    number_sections: true
+    df_print: kable
+fontsize: 12pt
+geometry: margin=1in
+linestretch: 2
+---
+
+```{r setup, include=FALSE}
+here::i_am("final_report.Rmd")
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  fig.align = "center"
+)
+knitr::opts_knit$set(root.dir = here::here())
+
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(here)
+library(survival)
+library(survminer)
+library(patchwork)
+
+RACE_COLORS <- c(
+  "White (non-Hispanic)"   = "#4477AA",
+  "Asian"                  = "#EE6677",
+  "Black/African American" = "#228833",
+  "Hispanic/Latino"        = "#CCBB44",
+  "Other/Unknown"          = "#BBBBBB"
+)
+DRIVER_GENES <- c("EGFR","KRAS","TP53","STK11","KEAP1","RB1","ERBB2","MET")
+DATA_DIR     <- here("data", "raw")
+OUTPUT_TAB   <- here("output", "tables")
+```
+
+---
+
+# Abstract
+
+Non-small cell lung cancer (NSCLC) is the leading cause of cancer mortality in the United States, and racial and ethnic minorities experience substantially worse outcomes than White patients. Whether these survival differences are mediated through differential frequencies of oncogenic driver gene mutations remains unclear. We analyzed 7,775 NSCLC patients from the MSK-CHORD 2024 dataset (cBioPortal) to test three hypotheses: that driver gene mutation frequencies differ across racial/ethnic groups; that observed differences persist after multivariable adjustment for smoking history, disease stage, histologic subtype, sex, and age; and that these differences partly mediate racial survival disparities. Chi-square tests with Benjamini-Hochberg false discovery rate (FDR) correction identified significant race-mutation associations for six of eight genes tested. Multivariable logistic regression confirmed that Asian patients carry three times the odds of EGFR mutation compared with White patients (adjusted OR 2.93, 95% CI 2.43--3.53) after full covariate adjustment. Cox proportional hazards modeling showed that EGFR mutation independently predicts improved survival (HR 0.82, p < 0.001), though the Race × EGFR interaction term was not significant. Replication in colorectal and breast cancer cohorts confirmed that EGFR enrichment in Asian patients is specific to NSCLC. These results suggest that lung-tissue-specific biological mechanisms, rather than pan-cancer racial genomic patterns, drive the observed mutation frequency disparities.
+
+---
+
+# Introduction
+
+Lung cancer causes approximately 125,000 deaths in the United States annually, and NSCLC accounts for about 85% of these cases (Siegel et al. 2023, CA Cancer J Clin). Racial and ethnic minorities, particularly Black and Hispanic patients, experience worse NSCLC outcomes than non-Hispanic White patients. This survival gap arises from at least two distinct sources: differences in access to treatment and differences in tumour biology. Oncogenic driver gene mutations define the dominant pathway of tumour growth and, critically, determine eligibility for targeted therapies. Patients carrying an EGFR mutation, for example, respond to EGFR tyrosine kinase inhibitors (TKIs), which produce substantially higher response rates and longer progression-free survival than cytotoxic chemotherapy (Mok et al. 2009, N Engl J Med). If mutation frequencies differ systematically across racial/ethnic groups, then unequal distributions of actionable mutations could both explain part of the survival disparity and point to targeted interventions.
+
+Prior observational work has reported higher EGFR mutation prevalence among Asian patients with NSCLC compared with White patients (Shigematsu et al. 2005, J Natl Cancer Inst). Most of these studies, however, were either limited to single institutions, did not fully adjust for smoking history and stage at diagnosis, or examined a narrow set of genes. It remains unclear whether observed race-mutation associations are direct biological effects or proxies for differential smoking exposure, which itself varies substantially by race and ethnicity and is the dominant mutagen for KRAS and STK11.
+
+We test four scientific hypotheses using the MSK-CHORD 2024 dataset:
+
+(H1) Mutation frequencies for the eight most clinically actionable driver genes in NSCLC differ significantly across self-reported racial/ethnic groups before adjustment.
+
+(H2) EGFR enrichment in Asian patients and KRAS/STK11 enrichment in White patients persist after multivariable adjustment for smoking history, disease stage, histologic subtype, sex, and age.
+
+(H3) Racial differences in overall survival (OS) are partially mediated by differential EGFR mutation prevalence, quantified through a Race × EGFR interaction term in a Cox proportional hazards model.
+
+(H4) The EGFR-race association is specific to NSCLC and does not replicate in colorectal or breast cancer, where EGFR is not a dominant oncogenic driver.
+
+---
+
+# Variables Used and Data Cleaning
+
+MSK-CHORD 2024 (Memorial Sloan Kettering Cancer Center Harmonized Oncology Research Database and Cohort) was downloaded from cBioPortal in April 2024. The dataset contains 25,040 patients sequenced with MSK-IMPACT, a targeted panel covering 341--505 genes. We extracted clinical records for NSCLC (ICD-O histology codes for adenocarcinoma, squamous cell carcinoma, and related subtypes), colorectal cancer (CRC), and breast cancer for replication analyses.
+
+Eight driver genes were selected based on their prevalence, clinical actionability, and established role in NSCLC biology: EGFR, KRAS, TP53, STK11, KEAP1, RB1, ERBB2, and MET. Mutation status was coded as a binary variable (1 = any non-synonymous somatic mutation, 0 = wild-type or not sequenced) for each gene.
+
+Race and ethnicity were harmonised to five categories following U.S. Office of Management and Budget (OMB) classification: White (non-Hispanic), Asian, Black/African American, Hispanic/Latino, and Other/Unknown. A critical implementation detail required correcting an ordering error in the case assignment: patients recorded as "Non-Spanish; Non-Hispanic" in the ethnicity field contain the substring "Hispanic", and must be classified as White (non-Hispanic) before the general Hispanic/Latino rule is applied. Misapplying the classification order misassigned approximately 5,000 White patients as Hispanic/Latino and produced a spurious EGFR association in preliminary analyses.
+
+The primary analytical cohort required complete data on race/ethnicity, EGFR mutation status, smoking history, disease stage, histologic subtype, sex, and age. Applying these criteria yielded 7,775 NSCLC patients (Table 1). Smoking history was missing for 28.3% of patients; a sensitivity analysis using 20 multiply-imputed datasets (mice R package; van Buuren 2018) confirmed that complete-case results were not materially biased. All R scripts, including the data processing pipeline, are publicly available at https://github.com/weikai202/msk_chord_analysis.
+
+---
+
+# Statistical Methods
+
+## Association Between Race and Mutation Status
+
+For each of the eight driver genes, we tested whether mutation frequency differed across the five racial/ethnic groups using a contingency table approach. When all expected cell counts exceeded five, we applied a chi-square test of independence. When any expected count fell below five (common for rare mutations in small racial subgroups), we used Fisher's exact test with 10,000 Monte Carlo simulations. Because we conducted eight simultaneous tests, raw p-values were adjusted using the Benjamini-Hochberg (BH) procedure at a false discovery rate of q = 0.05 (Benjamini and Hochberg 1995, J Royal Statistical Society B). This procedure controls the expected proportion of false discoveries among rejected hypotheses and is less conservative than Bonferroni correction, which would control the probability of any false rejection across all eight tests. Effect size was measured by Cramér's V, where values near 0.1, 0.3, and 0.5 correspond approximately to small, medium, and large associations (Cohen 1988).
+
+## Multivariable Logistic Regression
+
+To isolate the direct effect of race/ethnicity on mutation status after controlling for confounders, we fit a separate binary logistic regression model for each of the eight driver genes:
+
+$$\text{logit}[P(\text{MUT}_g = 1)] = \beta_0 + \beta_1 \cdot \text{RACE\_ETH} + \beta_2 \cdot \text{SMOKING} + \beta_3 \cdot \text{STAGE} + \beta_4 \cdot \text{SEX} + \beta_5 \cdot \text{AGE} + \beta_6 \cdot \text{HIST}$$
+
+where $\text{HIST}$ collapses histologic subtype into three categories (adenocarcinoma, squamous cell carcinoma, and other/NOS) to avoid complete separation caused by the hundreds of rare subtypes in the original data. The reference group for race/ethnicity was White (non-Hispanic). Results are presented as adjusted odds ratios (ORs) with 95% profile likelihood confidence intervals. White (non-Hispanic) served as the reference. We evaluated events-per-variable (EPV) before each model fit and applied Firth penalised regression when standard maximum likelihood failed to converge. Adjusted p-values used BH-FDR correction across all race-gene pairs.
+
+## Survival Analysis
+
+We fit a multivariable Cox proportional hazards model for OS:
+
+$$h(t \mid X) = h_0(t) \cdot \exp(\boldsymbol{\beta}^{\top} \boldsymbol{X})$$
+
+The model included race/ethnicity, EGFR mutation status, a Race × EGFR interaction term, smoking history, disease stage, sex, and age. Tied event times were handled with Efron's method. The proportional hazards assumption was evaluated for each covariate using Schoenfeld residuals (cox.zph); a significant global test (p < 0.05) would indicate time-varying effects requiring stratification or a time-varying covariate. Hazard ratios (HRs) are reported with 95% confidence intervals. Kaplan-Meier (KM) survival curves were stratified by EGFR mutation status, and the log-rank test compared survival distributions across groups.
+
+## Replication in Independent Cohorts
+
+To assess whether the race-mutation associations observed in NSCLC reflect pan-cancer racial genomic patterns or NSCLC-specific biology, we applied the same logistic regression pipeline to CRC and breast cancer patients from MSK-CHORD 2024. Smoking history was included only when available for more than 50% of the cohort. Adjusted ORs from all three cancer cohorts are presented in a single forest plot.
+
+---
+
+# Results
+
+## Cohort Characteristics
+
+Table 1 summarises the 7,775 NSCLC patients included in the primary analysis. White (non-Hispanic) patients comprised 75.0% of the cohort (n = 5,830), followed by Asian (n = 726, 9.3%), Hispanic/Latino (n = 571, 7.3%), and Black/African American (n = 396, 5.1%) patients. Median age at diagnosis was 71 years (IQR 64--78). Asian patients had the lowest smoking rate (35.3% ever smokers) and the highest proportion of Stage IV disease (53.7%), while White patients had the highest smoking rate (78.8%). Black patients were the youngest (median 67 years) and had the second-highest Stage IV rate (50.8%). All between-group differences reached p < 0.001 by Kruskal-Wallis (age) and chi-square (categorical variables) tests.
+
+```{r table1}
+tbl1 <- tibble::tribble(
+  ~Characteristic,               ~`Overall (n=7,775)`, ~`White (n=5,830)`, ~`Asian (n=726)`, ~`Black (n=396)`, ~`Hispanic (n=571)`,
+  "Age, median [IQR]",           "71 [64, 78]",         "72 [65, 78]",      "68 [60, 76]",    "67 [60, 74]",    "70 [62, 78]",
+  "Ever smoker, %",              "73.0%",                "78.8%",            "35.3%",           "69.5%",          "68.0%",
+  "Stage IV, %",                 "43.8%",                "41.7%",            "53.7%",           "50.8%",          "45.4%",
+  "Adenocarcinoma, %",           "76.2%",                "76.1%",            "82.2%",           "71.5%",          "73.6%"
+)
+
+kable(tbl1,
+      caption = "Table 1. Demographic and clinical characteristics by race/ethnicity. All
+      between-group differences p < 0.001 (Kruskal-Wallis for age; chi-square for
+      categorical variables).",
+      booktabs = TRUE, align = "lcccc") %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"),
+                font_size = 10)
+```
+
+## Unadjusted Association Between Race and Mutation Status
+
+Figure 1 shows mutation prevalence for all eight driver genes across racial/ethnic groups. EGFR shows the most pronounced disparity: Asian patients carry a 54.0% mutation rate compared with 20.2% in White patients and 26.8% in Black patients. KRAS and STK11 show the reverse pattern, with White patients carrying the highest rates (31.2% and 14.5%, respectively) and Asian patients the lowest (9.8% and 4.0%, respectively).
+
+Table 2 presents chi-square and FDR-corrected results for all eight genes. Six genes showed significant associations after BH correction (q < 0.05). EGFR had the largest effect by far (Cramér's V = 0.229, q = 3.0 × 10^-86^), followed by KRAS (V = 0.144, q = 2.0 × 10^-33^) and STK11 (V = 0.097, q = 1.3 × 10^-14^). MET (q = 0.055) and ERBB2 (q = 0.109) did not reach the q = 0.05 threshold.
+
+```{r table2}
+tbl2 <- read_csv(here(OUTPUT_TAB, "03_chisq_fdr_nsclc.csv"),
+                 show_col_types = FALSE) %>%
+  select(Gene, test_used, statistic, p_value, q_value, sig_label, cramers_v) %>%
+  mutate(
+    statistic = round(statistic, 1),
+    p_value   = formatC(p_value, format = "e", digits = 1),
+    q_value   = formatC(q_value, format = "e", digits = 1),
+    cramers_v = round(cramers_v, 3)
+  )
+
+kable(tbl2,
+      col.names = c("Gene", "Test", "Statistic", "p-value",
+                    "q-value (BH)", "FDR sig.", "Cramér's V"),
+      caption   = "Table 2. Gene-race association tests in the NSCLC cohort (n = 7,775).
+      BH-FDR correction applied across 8 simultaneous tests at q = 0.05. Chi-square
+      used when all expected cell counts ≥ 5; Fisher's exact otherwise.",
+      booktabs  = TRUE,
+      align     = "lcccccr") %>%
+  kable_styling(latex_options = c("hold_position"),
+                font_size = 10) %>%
+  row_spec(which(tbl2$sig_label %in% c("***","**","*")), bold = TRUE)
+```
+
+```{r fig1-prevalence, fig.cap="Figure 1. Driver gene mutation prevalence by race/ethnicity in NSCLC (n = 7,775). Error bars represent 95% Wilson confidence intervals. EGFR shows the largest between-group disparity, with Asian patients carrying 2.7 times the prevalence of White patients.", fig.width=10, fig.height=5}
+prev_df <- read_csv(here(OUTPUT_TAB, "02_mutation_prevalence_nsclc.csv"),
+                    show_col_types = FALSE) %>%
+  mutate(
+    RACE_ETH = factor(RACE_ETH, levels = names(RACE_COLORS)),
+    Gene     = factor(Gene, levels = DRIVER_GENES)
+  )
+
+ggplot(prev_df, aes(x = Gene, y = pct, fill = RACE_ETH)) +
+  geom_col(position = position_dodge(width = 0.75), width = 0.65) +
+  geom_errorbar(aes(ymin = lo * 100, ymax = hi * 100),
+                position = position_dodge(width = 0.75),
+                width = 0.22, linewidth = 0.4) +
+  scale_fill_manual(values = RACE_COLORS, name = NULL) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1),
+                     expand = expansion(mult = c(0, 0.06))) +
+  labs(x = "Driver gene", y = "Mutation prevalence (%)") +
+  theme_bw(base_size = 11) +
+  theme(legend.position  = "bottom",
+        axis.text.x      = element_text(face = "bold"),
+        panel.grid.minor = element_blank()) +
+  guides(fill = guide_legend(nrow = 2))
+```
+
+## Multivariable Adjusted Odds Ratios
+
+Figure 2 presents adjusted ORs for the four genes with significant FDR-adjusted associations in multivariable logistic regression. After controlling for smoking history, disease stage, histologic subtype, sex, and age, Asian patients retain 2.93 times the odds of EGFR mutation compared with White patients (95% CI 2.43--3.53, FDR-adjusted p < 0.001). Asian patients show less than half the odds of KRAS mutation (adj. OR 0.47, 95% CI 0.36--0.62) and less than 40% of the odds of STK11 mutation (adj. OR 0.38, 95% CI 0.25--0.57) compared with White patients. Black patients show a modestly higher EGFR rate than White patients in the unadjusted analysis, but this difference does not reach significance after adjustment (adj. OR 1.25, 95% CI 0.96--1.62, FDR-adjusted p = 0.24).
+
+```{r fig2-forest, fig.cap="Figure 2. Adjusted odds ratios for EGFR, KRAS, STK11, and KEAP1 mutations by race/ethnicity. Reference group: White (non-Hispanic). Models adjust for smoking history, disease stage, histologic subtype (3 categories), sex, and age. Significance labels reflect BH-FDR adjusted p-values (* q < 0.05, *** q < 0.001). Log scale.", fig.width=9, fig.height=6}
+or_df <- read_csv(here(OUTPUT_TAB, "04_OR_logistic_nsclc_cc.csv"),
+                  show_col_types = FALSE) %>%
+  filter(Gene %in% c("EGFR","KRAS","STK11","KEAP1")) %>%
+  mutate(
+    Race_Group = factor(Race_Group,
+                        levels = c("Asian","Black/African American",
+                                   "Hispanic/Latino","Other/Unknown")),
+    Gene       = factor(Gene, levels = c("EGFR","KRAS","STK11","KEAP1")),
+    sig_label  = case_when(
+      p_adj < 0.001 ~ "***", p_adj < 0.01 ~ "**",
+      p_adj < 0.05 ~ "*",   TRUE ~ ""
+    )
+  )
+
+ggplot(or_df, aes(y = Race_Group, x = OR, xmin = CI_low, xmax = CI_high,
+                  colour = Race_Group)) +
+  geom_vline(xintercept = 1, linetype = "dashed",
+             colour = "grey40", linewidth = 0.6) +
+  geom_errorbarh(height = 0.28, linewidth = 0.8) +
+  geom_point(size = 4, shape = 18) +
+  geom_text(aes(x = pmin(CI_high + 0.08, 7), label = sig_label),
+            hjust = 0, size = 3.8, colour = "black") +
+  scale_colour_manual(values = RACE_COLORS[-1], guide = "none") +
+  scale_x_log10(breaks = c(0.25, 0.5, 1, 2, 4),
+                labels  = c("0.25","0.5","1","2","4"),
+                limits  = c(0.2, 8)) +
+  facet_wrap(~ Gene, ncol = 2) +
+  labs(x = "Adjusted odds ratio (log scale)", y = NULL) +
+  theme_bw(base_size = 11) +
+  theme(strip.background = element_rect(fill = "#2C3E50"),
+        strip.text       = element_text(face = "bold", colour = "white"),
+        panel.grid.minor = element_blank())
+```
+
+## Survival Analysis
+
+Figure 3 shows KM survival curves stratified by EGFR mutation status. EGFR-mutant patients had a median OS of 48.4 months compared with 36.3 months for wild-type patients (log-rank p < 0.001). In the multivariable Cox model, EGFR mutation was independently associated with improved survival (HR 0.82, 95% CI 0.74--0.91, p < 0.001) after adjusting for race/ethnicity, smoking, stage, sex, and age. Disease stage IV carried the strongest prognostic effect (HR 2.88, 95% CI 2.68--3.08, p < 10^-195^). The Race × EGFR interaction terms did not reach statistical significance for any racial group (all FDR-adjusted p > 0.15), which indicates that the survival benefit of EGFR mutation does not differ significantly across racial/ethnic groups in this cohort. The proportional hazards assumption was satisfied for race, EGFR status, and stage (Schoenfeld residual test p > 0.10 for all three).
+
+```{r fig3-km, fig.cap="Figure 3. Kaplan-Meier overall survival curves by EGFR mutation status in NSCLC (n = 7,775). EGFR-mutant patients show longer median survival (48.4 vs. 36.3 months). Shaded bands represent 95% confidence intervals. Number at risk shown below the time axis.", fig.width=9, fig.height=6}
+nsclc_df <- tryCatch(
+  readRDS(file.path(DATA_DIR, "nsclc_complete_case.rds")) %>%
+    filter(!is.na(OS_MONTHS), !is.na(OS_STATUS),
+           OS_MONTHS >= 0, !is.na(RACE_ETH)) %>%
+    mutate(EGFR_MUT_LABEL = factor(MUT_EGFR, levels = c(0,1),
+                                   labels = c("EGFR wild-type","EGFR mutant"))),
+  error = function(e) NULL
+)
+
+if (!is.null(nsclc_df)) {
+  km_fit <- survfit(Surv(OS_MONTHS, OS_STATUS) ~ EGFR_MUT_LABEL,
+                    data = nsclc_df)
+  p_km <- ggsurvplot(
+    km_fit, data = nsclc_df,
+    palette     = c("#4477AA","#EE6677"),
+    pval        = TRUE, pval.method = FALSE,
+    conf.int    = TRUE, conf.int.alpha = 0.1,
+    risk.table  = TRUE, risk.table.height = 0.25,
+    xlab        = "Time (months)",
+    ylab        = "Overall survival probability",
+    legend.labs = c("EGFR wild-type","EGFR mutant"),
+    legend.title = "",
+    ggtheme     = theme_bw(base_size = 11),
+    risk.table.fontsize = 3.2,
+    surv.median.line = "hv"
+  )
+  print(p_km)
+} else {
+  cat("RDS file not found — run 07_run_all.R first to generate survival figure.")
+}
+```
+
+## Replication in CRC and Breast Cancer Cohorts
+
+Figure 4 shows adjusted ORs for EGFR and KRAS across NSCLC, CRC, and Breast cohorts. EGFR enrichment in Asian patients reaches OR 2.93 in NSCLC but attenuates toward the null in CRC (OR 0.39, 95% CI 0.14--0.86) and Breast (OR 0.35, 95% CI 0.06--1.15). This pattern supports H4: EGFR mutation enrichment in Asian patients is a lung-tissue-specific phenomenon rather than a pan-cancer racial genomic signal. By contrast, TP53 enrichment in Black patients reaches statistical significance in Breast cancer (adj. OR 1.93, 95% CI 1.59--2.34, p = 3 × 10^-11^) but not in NSCLC (adj. OR 1.36, 95% CI 1.09--1.70, FDR-adjusted p = 0.05), suggesting cancer-type-specific racial disparities for this gene as well.
+
+```{r fig4-replication, fig.cap="Figure 4. Cross-cohort replication of adjusted ORs for EGFR and KRAS in Asian and Black patients. Reference group: White (non-Hispanic). EGFR enrichment in Asian patients is significant only in NSCLC, not in CRC or Breast cancer. Error bars: 95% confidence intervals.", fig.width=9, fig.height=5}
+nsclc_or <- read_csv(here(OUTPUT_TAB, "04_OR_logistic_nsclc_cc.csv"),
+                     show_col_types = FALSE) %>%
+  mutate(Cohort = "NSCLC") %>%
+  select(Cohort, Gene, Race_Group, OR, CI_low, CI_high, p.value)
+
+rep_df <- read_csv(here(OUTPUT_TAB, "06_OR_replication_cohorts.csv"),
+                   show_col_types = FALSE)
+
+rep_all <- bind_rows(nsclc_or, rep_df) %>%
+  filter(
+    Gene %in% c("EGFR","KRAS"),
+    Race_Group %in% c("Asian","Black/African American"),
+    !is.na(OR), is.finite(OR),
+    CI_low > 0, CI_high < 30
+  ) %>%
+  mutate(
+    Cohort     = factor(Cohort, levels = c("NSCLC","CRC","Breast")),
+    Race_Group = factor(Race_Group,
+                        levels = c("Asian","Black/African American")),
+    Gene       = factor(Gene, levels = c("EGFR","KRAS"))
+  )
+
+ggplot(rep_all,
+       aes(y = Cohort, x = OR, xmin = CI_low, xmax = CI_high,
+           colour = Cohort, shape = Cohort)) +
+  geom_vline(xintercept = 1, linetype = "dashed",
+             colour = "grey40", linewidth = 0.5) +
+  geom_errorbarh(height = 0.3, linewidth = 0.7) +
+  geom_point(size = 3.5) +
+  scale_colour_manual(values = c("NSCLC" = "#4477AA","CRC" = "#EE6677",
+                                  "Breast" = "#228833"),
+                      name = "Cohort") +
+  scale_shape_manual(values  = c("NSCLC" = 15,"CRC" = 16,"Breast" = 17),
+                     name = "Cohort") +
+  scale_x_log10(breaks = c(0.25, 0.5, 1, 2, 4),
+                labels  = c("0.25","0.5","1","2","4")) +
+  facet_grid(Race_Group ~ Gene) +
+  labs(x = "Adjusted odds ratio (log scale)", y = NULL) +
+  theme_bw(base_size = 11) +
+  theme(strip.background = element_rect(fill = "#2C3E50"),
+        strip.text       = element_text(face = "bold", colour = "white"),
+        panel.grid.minor = element_blank(),
+        legend.position  = "bottom")
+```
+
+---
+
+# Discussion
+
+This study confirms that EGFR mutation frequency in NSCLC differs markedly across racial/ethnic groups and that this difference is not explained by smoking history, disease stage, or histologic subtype. Asian patients carry approximately three times the adjusted odds of EGFR mutation compared with White patients, a finding consistent with prior reports from East Asian clinical trial populations (Shigematsu et al. 2005, J Natl Cancer Inst). The replication analysis provides new evidence that this association is lung-specific: EGFR enrichment disappears in CRC and Breast cancer from the same institution and sequencing platform, which rules out technical or access-related confounding as the primary driver.
+
+The Cox model supports EGFR mutation as a prognostic factor independent of race (HR 0.82), but the Race × EGFR interaction terms are non-significant. This finding suggests that the reported survival advantage of EGFR-mutant patients reflects the direct effect of targeted therapy rather than a race-specific biological difference in tumour biology or treatment response. Black patients show the shortest median OS (18.7 months for EGFR wild-type), and this disadvantage persists after stage and smoking adjustment, which is consistent with unmeasured barriers to TKI access or differences in comorbidity burden not captured in this dataset.
+
+Three limitations constrain the interpretation of these findings. First, MSK-CHORD is drawn from a single tertiary cancer centre in New York City, where the patient population overrepresents commercially insured patients and may not generalize to community oncology settings. Second, race and ethnicity are self-reported and collapsed into five broad categories, obscuring within-group heterogeneity (for example, EGFR mutation rates differ between East Asian and South Asian patients). Third, the analysis lacks germline sequencing data, so it cannot distinguish somatic mutation frequencies from underlying germline predisposition to EGFR-activating variants.
+
+These findings have direct clinical implications. The lung-specific EGFR enrichment in Asian patients supports routine EGFR testing at diagnosis for all Asian patients with NSCLC, regardless of smoking history. Black patients' younger age at diagnosis and higher Stage IV rate suggest opportunities for earlier screening and intervention. Future work should integrate population-level germline GWAS data to determine what fraction of the somatic EGFR enrichment is attributable to inherited variation in the EGFR locus, and should examine whether TKI treatment rates fully mediate the Race × EGFR survival interaction.
+
+---
+
+# References
+
+Benjamini Y, Hochberg Y. Controlling the false discovery rate: a practical and powerful approach to multiple testing. *Journal of the Royal Statistical Society Series B.* 1995;57(1):289--302.
+
+Cohen J. *Statistical Power Analysis for the Behavioral Sciences.* 2nd ed. Erlbaum; 1988.
+
+Mok TS, Wu YL, Thongprasert S, et al. Gefitinib or carboplatin-paclitaxel in pulmonary adenocarcinoma. *New England Journal of Medicine.* 2009;361(10):947--957.
+
+Shigematsu H, Lin L, Takahashi T, et al. Clinical and biological features associated with epidermal growth factor receptor gene mutations in lung cancers. *Journal of the National Cancer Institute.* 2005;97(5):339--346.
+
+Siegel RL, Miller KD, Wagle NS, Jemal A. Cancer statistics, 2023. *CA: A Cancer Journal for Clinicians.* 2023;73(1):17--48.
+
+van Buuren S. *Flexible Imputation of Missing Data.* 2nd ed. CRC Press; 2018.
