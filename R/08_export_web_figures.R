@@ -9,7 +9,43 @@
 # Run AFTER 07_run_all.R has completed.
 # =============================================================================
 
-source(here::here("R", "00_setup.R"))
+# ── Locate project root ───────────────────────────────────────────────────────
+# here::here() resolves from RStudio's working directory, which may not be the
+# project folder.  We search upward from this script's own path first; if that
+# fails (e.g. interactive console paste) we fall back to a fixed path.
+.locate_root <- function() {
+  # 1. Try the path of the currently-sourced file (works when source()'d)
+  src <- tryCatch(normalizePath(sys.frame(1)$ofile, mustWork = FALSE),
+                  error = function(e) "")
+  if (nchar(src) > 0) {
+    # script is in <root>/R/ — go up one level
+    candidate <- dirname(dirname(src))
+    if (file.exists(file.path(candidate, "R", "00_setup.R")))
+      return(candidate)
+  }
+  # 2. Try here::here() in case the working directory is already correct
+  h <- tryCatch(here::here(), error = function(e) "")
+  if (nchar(h) > 0 && file.exists(file.path(h, "R", "00_setup.R")))
+    return(h)
+  # 3. Walk upward from getwd()
+  parts <- strsplit(normalizePath(getwd(), mustWork = FALSE), "[/\\\\]")[[1]]
+  for (i in seq(length(parts), 1)) {
+    candidate <- paste(parts[seq_len(i)], collapse = "/")
+    if (file.exists(file.path(candidate, "R", "00_setup.R")))
+      return(candidate)
+  }
+  # 4. Hard-coded fallback for this machine
+  fallback <- "C:/Users/kai/msk_chord_analysis"
+  if (file.exists(file.path(fallback, "R", "00_setup.R"))) return(fallback)
+  stop("Cannot find project root. Run  setwd('C:/Users/kai/msk_chord_analysis')  then try again.")
+}
+
+PROJ_ROOT <- .locate_root()
+message("Project root: ", PROJ_ROOT)
+setwd(PROJ_ROOT)           # ensures here::here() works for the rest of the script
+
+library(here)
+source(file.path(PROJ_ROOT, "R", "00_setup.R"))
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 # Prefer Desktop/figures if it exists; fall back to output/figures
